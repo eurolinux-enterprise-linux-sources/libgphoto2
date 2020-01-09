@@ -1,7 +1,7 @@
 Summary: Library for accessing digital cameras
 Name: libgphoto2
 Version: 2.4.7
-Release: 4%{?dist}
+Release: 5%{?dist}
 # GPLV2+ for the main lib (due to exif.c) and most plugins, some plugins GPLv2
 License: GPLv2+ and GPLv2 and LGPLv2+
 Group: Development/Libraries
@@ -12,6 +12,7 @@ Patch2: gphoto2-storage.patch
 Patch3: gphoto2-ixany.patch
 Patch4: gphoto2-maxentries.patch
 Patch5: gphoto2-device-return.patch
+Patch6: gphoto2-storage-list.patch
 Url: http://www.gphoto.org/
 Requires: lockdev
 BuildRequires: libusb-devel >= 0.1.5
@@ -56,6 +57,7 @@ use libgphoto2.
 %patch3 -p1 -b .ixany
 %patch4 -p1 -b .maxentries
 %patch5 -p1 -b .device-return
+%patch6 -p1 -b .storage-list
 
 for i in AUTHORS COPYING libgphoto2_port/AUTHORS libgphoto2_port/COPYING.LIB `find -name 'README.*'`; do
 	mv ${i} ${i}.old
@@ -162,6 +164,9 @@ rm -rf "${RPM_BUILD_ROOT}"
 %{_mandir}/man3/*
 
 %changelog
+* Tue Aug 30 2016 Josef Ridky <jridky@redhat.com> 2.4.7-5
+- fix SIGSEGV caused by empty storage id list in camlibs/ptp2/ptp-pack.c (#1184302)
+
 * Tue Jun 01 2010 Jindrich Novy <jnovy@redhat.com> 2.4.7-4
 - add -fno-strict-aliasing (#596183)
 

@@ -1,0 +1,15 @@
+diff -urNp orig/camlibs/ptp2/ptp-pack.c new/camlibs/ptp2/ptp-pack.c
+--- orig/camlibs/ptp2/ptp-pack.c	2009-07-10 22:54:53.000000000 +0200
++++ new/camlibs/ptp2/ptp-pack.c	2016-08-30 09:34:37.171515368 +0200
+@@ -399,6 +399,11 @@ ptp_unpack_OH (PTPParams *params, unsign
+ static inline void
+ ptp_unpack_SIDs (PTPParams *params, unsigned char* data, PTPStorageIDs *sids, unsigned int len)
+ {
++	if(!data && !len) {
++		sids->n = 0;
++		sids->Storage = NULL;
++		return;
++	}
+ 	sids->n = ptp_unpack_uint32_t_array(params, data, PTP_sids,
+ 	&sids->Storage);
+ }
