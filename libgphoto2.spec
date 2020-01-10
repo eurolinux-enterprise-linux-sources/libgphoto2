@@ -5,7 +5,7 @@
 
 Name:           libgphoto2
 Version:        2.5.15
-Release:        1%{?dist}
+Release:        3%{?dist}
 Summary:        Library for accessing digital cameras
 Group:          Development/Libraries
 # GPLV2+ for the main lib (due to exif.c) and most plugins, some plugins GPLv2
@@ -17,6 +17,7 @@ Patch1:         gphoto2-pkgcfg.patch
 Patch2:         gphoto2-storage.patch
 Patch3:         gphoto2-ixany.patch
 Patch4:         gphoto2-device-return.patch
+Patch5:         gphoto2-ptp.patch
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
 BuildRequires:  make
@@ -70,8 +71,10 @@ for f in AUTHORS ChangeLog COPYING libgphoto2_port/AUTHORS libgphoto2_port/COPYI
     iconv -f ISO-8859-1 -t UTF-8 $f > $f.conv && mv -f $f.conv $f
 done
 
-
 %build
+CFLAGS="$RPM_OPT_FLAGS -fno-strict-aliasing"
+CXXFLAGS="$RPM_OPT_FLAGS -fno-strict-aliasing"
+
 %configure \
     udevscriptdir='%{udevdir}'   \
     --with-drivers=all           \
@@ -154,6 +157,12 @@ rm -rf %{buildroot}%{_datadir}/libgphoto2_port/*/vcamera/
 %{_mandir}/man3/%{name}_port.3*
 
 %changelog
+* Wed Mar 06 2019 Josef Ridky <jridky@redhat.com> - 2.5.15-3
+- fix CFLAGS and CXXFLAGS content
+
+* Wed Mar 06 2019 Josef Ridky <jridky@redhat.com> - 2.5.15-2
+- Resolves: #1551747 - fix issue with get folder list
+
 * Wed Oct 04 2017 Josef Ridky <jridky@redhat.com> - 2.5.15-1
 - Resolves: #1463585 - rebase to the latest upstream version
 
