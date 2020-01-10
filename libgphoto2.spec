@@ -2,7 +2,7 @@
 
 Name:           libgphoto2
 Version:        2.5.2
-Release:        1%{?dist}
+Release:        3%{?dist}
 Summary:        Library for accessing digital cameras
 Group:          Development/Libraries
 # GPLV2+ for the main lib (due to exif.c) and most plugins, some plugins GPLv2
@@ -140,6 +140,12 @@ cat libgphoto2*.lang >> %{name}.lang
 %{_mandir}/man3/*
 
 %changelog
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 2.5.2-3
+- Mass rebuild 2014-01-24
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 2.5.2-2
+- Mass rebuild 2013-12-27
+
 * Mon May  6 2013 Hans de Goede <hdegoede@redhat.com> - 2.5.2-1
 - New upstream release bugfix 2.5.2
 - Drop bugfix patches (merged upstream)
