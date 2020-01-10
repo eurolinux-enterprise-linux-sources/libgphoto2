@@ -10,8 +10,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 VERSION=@VERSION@
-abs_top_builddir=@abs_top_builddir@
-driverdir=${abs_top_builddir}
+driverdir=@camlibdir@
 
 Name: libgphoto2_port
 Description: Library for easy access to digital cameras

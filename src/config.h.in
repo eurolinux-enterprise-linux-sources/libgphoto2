@@ -30,8 +30,8 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
-/* Define to 1 if you have the `getenv' function. */
-#undef HAVE_GETENV
+/* define if we have LIBGD and its headers */
+#undef HAVE_GD
 
 /* Define to 1 if you have the `getopt' function. */
 #undef HAVE_GETOPT
@@ -51,14 +51,8 @@
 /* Define if you have the iconv() function. */
 #undef HAVE_ICONV
 
-/* Define to 1 if you have the `inet_aton' function. */
-#undef HAVE_INET_ATON
-
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
-
-/* Define to 1 if you have the <langinfo.h> header file. */
-#undef HAVE_LANGINFO_H
 
 /* whether we compile with libexif support */
 #undef HAVE_LIBEXIF
@@ -66,16 +60,13 @@
 /* whether we use a version of libexif with ExifData.ifd[[]] */
 #undef HAVE_LIBEXIF_IFD
 
-/* whether we compile with gdlib support */
-#undef HAVE_LIBGD
-
 /* Define to 1 if you have the `ibs' library (-libs). */
 #undef HAVE_LIBIBS
 
 /* define if we found LIBJPEG and its headers */
 #undef HAVE_LIBJPEG
 
-/* whether we compile with libxml-2.0 support */
+/* define if we found LIBXML2 and its headers */
 #undef HAVE_LIBXML2
 
 /* Define to 1 if you have the <limits.h> header file. */
@@ -83,12 +74,6 @@
 
 /* Define to 1 if you have the <locale.h> header file. */
 #undef HAVE_LOCALE_H
-
-/* Define to 1 if you have the `localtime_r' function. */
-#undef HAVE_LOCALTIME_R
-
-/* Define to 1 if you have the `lstat' function. */
-#undef HAVE_LSTAT
 
 /* Whether libltdl (of libtool fame) is present */
 #undef HAVE_LTDL
@@ -104,12 +89,6 @@
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
-
-/* Define to 1 if you have the `rand_r' function. */
-#undef HAVE_RAND_R
-
-/* Define to 1 if you have the `setenv' function. */
-#undef HAVE_SETENV
 
 /* Define to 1 if you have the `snprintf' function. */
 #undef HAVE_SNPRINTF
@@ -156,9 +135,6 @@
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
    */
 #undef HAVE_SYS_DIR_H
-
-/* Define to 1 if you have the <sys/mman.h> header file. */
-#undef HAVE_SYS_MMAN_H
 
 /* Define to 1 if you have the <sys/mount.h> header file. */
 #undef HAVE_SYS_MOUNT_H
@@ -209,7 +185,8 @@
 /* Whether the set of camlibs built is incomplete */
 #undef INCOMPLETE_CAMLIB_SET
 
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #undef LT_OBJDIR
 
 /* gphoto development mailing list */
@@ -220,6 +197,9 @@
 
 /* gphoto user mailing list */
 #undef MAIL_GPHOTO_USER
+
+/* Define to 1 if your C compiler doesn't accept -c and -o together. */
+#undef NO_MINUS_C_MINUS_O
 
 /* Name of package */
 #undef PACKAGE
@@ -254,7 +234,7 @@
 /* gphoto project home page */
 #undef URL_GPHOTO_HOME
 
-/* gphoto github project page */
+/* gphoto sourceforge project page */
 #undef URL_GPHOTO_PROJECT
 
 /* jphoto home page */

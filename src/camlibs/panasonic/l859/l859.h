@@ -1,7 +1,7 @@
 /*
-	$Id$
+	$Id: l859.h 9221 2006-09-28 03:04:21Z hun $
 
-	Copyright 2001 Andrew Selkirk <aselkirk@mailandnews.com>
+	Copyright © 2001 Andrew Selkirk <aselkirk@mailandnews.com>
 
 	This file is part of the gPhoto project and may only be used,  modified,
 	and distributed under the terms of the gPhoto project license,  COPYING.

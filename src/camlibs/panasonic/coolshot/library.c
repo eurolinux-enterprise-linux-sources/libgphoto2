@@ -2,7 +2,7 @@
 /* library.c  - Gphoto2 library for accessing the Panasonic     */
 /*              Coolshot KXL-600A & KXL-601A digital cameras.   */
 /*                                                              */
-/* Copyright 2001 Chris Pinkham                                 */
+/* Copyright © 2001 Chris Pinkham                             */
 /*                                                              */
 /* Author: Chris Pinkham <cpinkham@infi.net>                    */
 /*                                                              */
@@ -20,8 +20,8 @@
 /*                                                              */
 /* You should have received a copy of the GNU Library General   */
 /* Public License along with this library; if not, write to the */
-/* Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,*/
-/* Boston, MA  02110-1301  USA					*/
+/* Free Software Foundation, Inc., 59 Temple Place - Suite 330, */
+/* Boston, MA 02111-1307, USA.                                  */
 /****************************************************************/
 
 #define _POSIX_C_SOURCE 199309L
@@ -34,6 +34,7 @@
 #include <gphoto2/gphoto2.h>
 #include <time.h>
 #include "library.h"
+#include <unistd.h>
 
 #ifdef ENABLE_NLS
 #  include <libintl.h>
@@ -68,9 +69,7 @@
 
 
 static int coolshot_ack	(Camera *camera);
-#if 0
 static int coolshot_nak	(Camera *camera);
-#endif
 static int coolshot_sp	(Camera *camera);
 static int coolshot_fs( Camera *camera, int number );
 static int coolshot_write_packet (Camera *camera, char *packet);
@@ -176,7 +175,7 @@ int coolshot_sb( Camera *camera, int speed ) {
 
 	CHECK (gp_port_set_settings (camera->port, settings));
 
-	usleep(10 * 1000);
+	GP_SYSTEM_SLEEP(10);
 	return (GP_OK);
 }
 
@@ -481,10 +480,12 @@ static
 int coolshot_read_packet (Camera *camera, char *packet) {
 	int r = 0, x = 0, ret, done, length=0;
 	int blocksize, bytes_read;
+	char buf[4096];
 
 	GP_DEBUG ("* coolshot_read_packet");
 
 read_packet_again:
+	buf[0] = 0;
 	packet[0] = 0;
 
 	if (r > 0)
@@ -598,7 +599,6 @@ int coolshot_ack (Camera *camera)
 	return (GP_ERROR_TIMEOUT);
 }
 
-#if 0
 static
 int coolshot_nak (Camera *camera)
 {
@@ -619,7 +619,6 @@ int coolshot_nak (Camera *camera)
 	}
 	return (GP_ERROR_TIMEOUT);
 }
-#endif
 
 int coolshot_enq (Camera *camera)
 {

@@ -49,6 +49,8 @@
 
 #define GP_MODULE "dimera"
 
+#define ERROR(e) gp_log(GP_LOG_ERROR, GP_MODULE "/" __FILE__, (e))
+
 #ifndef MAX
 # define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
@@ -294,7 +296,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 		newdata = malloc(size*3);
 		if (!newdata) return (GP_ERROR_NO_MEMORY);
 		conversion_chuck (width, height, data, newdata);
-		gp_file_append (file, (char *)newdata, size*3);
+		gp_file_append (file, newdata, size*3);
 		free (newdata);
 		free (data);
 		break;
@@ -305,7 +307,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 					      context);
 		if (!data)
 			return GP_ERROR;
-		gp_file_set_data_and_size (file, (char *)data, size); /* will take over data ptr ownership */
+		gp_file_set_data_and_size (file, data, size); /* will take over data ptr ownership */
 		gp_file_set_mime_type (file, GP_MIME_RAW); 
 		gp_file_adjust_name_for_mime_type (file);
 		break;
@@ -313,7 +315,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 		data = Dimera_Get_Thumbnail (num,  &size, camera);
 		if (!data)
 			return GP_ERROR;
-		gp_file_set_data_and_size (file, (char *)data, size); /* will take over data ptr ownership */
+		gp_file_set_data_and_size (file, data, size); /* will take over data ptr ownership */
 		gp_file_set_mime_type (file, GP_MIME_PGM);
 		gp_file_adjust_name_for_mime_type (file);
 		break;
@@ -335,7 +337,7 @@ static int get_info_func (CameraFilesystem *fs, const char *folder, const char *
 
 	if ( (std_res = mesa_read_image_info( camera->port, num, NULL )) < 0 )
 	{
-		gp_log(GP_LOG_ERROR, "dimera/dimera3500", "Can't get Image Info");
+		ERROR("Can't get Image Info");
 		gp_context_error (context, _("Problem getting image information"));
 		return std_res;
 	}
@@ -395,7 +397,7 @@ static int camera_capture_preview(Camera *camera, CameraFile *file, GPContext *c
         data = Dimera_Preview( &size, camera, context);
         if (!data)
                 return GP_ERROR;
-	return gp_file_set_data_and_size (file, (char *)data, size);
+	return gp_file_set_data_and_size (file, data, size);
 }
 
 static int camera_summary (Camera *camera, CameraText *summary, GPContext *context) {
@@ -533,7 +535,7 @@ Dimera_Get_Thumbnail( int picnum, long *size, Camera *camera )
 	if ( !(image = (unsigned char *) malloc( MESA_THUMB_SZ +
 			sizeof( Dimera_thumbhdr ) - 1 )) )
 	{
-		gp_log(GP_LOG_ERROR, "dimera/dimera3500",  "Get Thumbnail, allocation failed" );
+		ERROR( "Get Thumbnail, allocation failed" );
 		*size = 0;
 		return NULL;
 	}
@@ -547,7 +549,7 @@ Dimera_Get_Thumbnail( int picnum, long *size, Camera *camera )
 	if ( (r = mesa_read_thumbnail( camera->port, picnum, image +
 			sizeof( Dimera_thumbhdr ) - 1 )) < 0 )
 	{
-		gp_log(GP_LOG_ERROR, "dimera/dimera3500",  "Get Thumbnail, read of thumbnail failed" );
+		ERROR( "Get Thumbnail, read of thumbnail failed" );
 		free( image );
 		*size = 0;
 		return NULL;
@@ -577,7 +579,7 @@ Dimera_Get_Full_Image (int picnum, long *size, int *width, int *height,
 		GP_DEBUG("Getting Image Info");
 		if ( (r = mesa_read_image_info( camera->port, picnum, NULL )) < 0 )
 		{
-			gp_log(GP_LOG_ERROR, "dimera/dimera3500", "Can't get Image Info");
+			ERROR("Can't get Image Info");
 			gp_context_error (context, _("Problem getting image information"));
 			return NULL;
 		}
@@ -595,7 +597,7 @@ Dimera_Get_Full_Image (int picnum, long *size, int *width, int *height,
 		GP_DEBUG("Loading Image");
 		if ( mesa_load_image( camera->port, picnum ) != GP_OK )
 		{
-			gp_log(GP_LOG_ERROR, "dimera/dimera3500", "Image Load failed");
+			ERROR("Image Load failed");
 			gp_context_error (context, _("Problem reading image from flash"));
 			return NULL;
 		}
@@ -779,7 +781,7 @@ Dimera_Preview( long *size, Camera *camera, GPContext *context )
 	if ( !(image = (unsigned char *) malloc( VIEWFIND_SZ +
 			sizeof( Dimera_viewhdr ) - 1 )) )
 	{
-		gp_log(GP_LOG_ERROR, "dimera/dimera3500",  "Get Preview, allocation failed" );
+		ERROR( "Get Preview, allocation failed" );
 		gp_context_error (context, _("Out of memory"));
 		return NULL;
 	}
@@ -793,7 +795,7 @@ Dimera_Preview( long *size, Camera *camera, GPContext *context )
 	if ( mesa_snap_view( camera->port, buffer, TRUE, 0, 0, 0, camera->pl->exposure,
 			VIEW_TYPE) < 0 )
 	{
-		gp_log(GP_LOG_ERROR, "dimera/dimera3500",  "Get Preview, mesa_snap_view failed" );
+		ERROR( "Get Preview, mesa_snap_view failed" );
 		free (image);
 		gp_context_error (context, _("Problem taking live image"));
 		return NULL;
@@ -871,7 +873,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Exposure level on preview"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		camera->pl->exposure = MAX(MIN_EXPOSURE,MIN(MAX_EXPOSURE,atoi(wvalue)));
 		gp_setting_set ("dimera3500", "exposure", wvalue);
@@ -880,7 +881,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Automatic exposure adjustment on preview"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &val);
 		camera->pl->auto_exposure = val;
 		sprintf(str, "%d", val);
@@ -890,7 +890,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Automatic flash on capture"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &val);
 		camera->pl->auto_flash = val;
 		sprintf(str, "%d", val);
@@ -958,7 +957,7 @@ int camera_init (Camera *camera, GPContext *context) {
         GP_DEBUG("Opening port");
         if ( (ret = mesa_port_open(camera->port)) != GP_OK)
         {
-                gp_log(GP_LOG_ERROR, "dimera/dimera3500", "Camera Open Failed");
+                ERROR("Camera Open Failed");
 		free (camera->pl);
 		camera->pl = NULL;
 		gp_context_error (context, _("Problem opening port"));
@@ -968,7 +967,7 @@ int camera_init (Camera *camera, GPContext *context) {
         GP_DEBUG("Resetting camera");
         if ( (ret = mesa_reset(camera->port)) != GP_OK )
         {
-                gp_log(GP_LOG_ERROR, "dimera/dimera3500", "Camera Reset Failed");
+                ERROR("Camera Reset Failed");
 		free (camera->pl);
 		camera->pl = NULL;
 		gp_context_error (context, _("Problem resetting camera"));
@@ -978,7 +977,7 @@ int camera_init (Camera *camera, GPContext *context) {
         GP_DEBUG("Setting speed");
         if ( (ret = mesa_set_speed(camera->port, selected_speed)) != GP_OK )
         {
-                gp_log(GP_LOG_ERROR, "dimera/dimera3500", "Camera Speed Setting Failed");
+                ERROR("Camera Speed Setting Failed");
 		free (camera->pl);
 		camera->pl = NULL;
 		gp_context_error (context, _("Problem setting camera communication speed"));
@@ -991,13 +990,13 @@ int camera_init (Camera *camera, GPContext *context) {
         {
         case GP_ERROR_IO:
         case GP_ERROR_TIMEOUT:
-                gp_log(GP_LOG_ERROR, "dimera/dimera3500", "No or Unknown Response");
+                ERROR("No or Unknown Response");
 		free (camera->pl);
 		camera->pl = NULL;
 		gp_context_error (context, _("No response from camera"));
                 return GP_ERROR_TIMEOUT;
         case GP_ERROR_MODEL_NOT_FOUND:
-                gp_log(GP_LOG_ERROR, "dimera/dimera3500", "Probably a modem");
+                ERROR("Probably a modem");
 		free (camera->pl);
 		camera->pl = NULL;
 		gp_context_error (context, _("Looks like a modem, not a camera"));

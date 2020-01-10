@@ -16,9 +16,8 @@
  *                                                                           *
  *  You should have received a copy of the GNU Library General Public        *
  *  License along with this program; see the file COPYING.LIB.  If not,      *
- *  write to the 
- *  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- *  Boston, MA  02110-1301  USA
+ *  write to the Free Software Foundation, Inc., 59 Temple Place -           *
+ *  Suite 330,  Boston, MA 02111-1307, USA.                                  *
  *                                                                           *
  *****************************************************************************/
 
@@ -63,6 +62,7 @@
 #include <sys/types.h>
 
 #include <fcntl.h>
+#include <unistd.h>
 #include <stdlib.h>
 
 #include <gphoto2/gphoto2-port-log.h>
@@ -256,7 +256,7 @@ hp_rcv_ack (Camera *cam, char *ackval)
 static int
 decode_u32(unsigned char **msg, int *msglen, unsigned int *val) {
 	unsigned int x = 0,i;
-	*val = 0;
+
 	for (i=0;i<8;i++) {
 		if (!*msglen)
 			return GP_ERROR;
@@ -272,7 +272,7 @@ decode_u32(unsigned char **msg, int *msglen, unsigned int *val) {
 static int
 decode_u16(unsigned char **msg, int *msglen, unsigned short *val) {
 	unsigned int x = 0,i;
-	*val = 0;
+
 	for (i=0;i<4;i++) {
 		if (!*msglen)
 			return GP_ERROR;
@@ -349,34 +349,20 @@ hp_send_command_and_receive_blob(
 		*msglen = replydatalen;
 		*msg = malloc (replydatalen);
 		ret = gp_port_read (camera->port, (char*)*msg, replydatalen);
-		if (ret < GP_OK) {
-			free (*msg);
-			*msg = NULL;
+		if (ret < GP_OK)
 			return ret;
-		}
 		ret = gp_port_read (camera->port, &eot, 1);
-		if (ret < GP_OK) {
-			free (*msg);
-			*msg = NULL;
+		if (ret < GP_OK)
 			return ret;
-		}
-		if (ret != 1) {
-			free (*msg);
-			*msg = NULL;
+		if (ret != 1)
 			return GP_ERROR_IO;
-		}
 		if (eot != EOT) {
-			free (*msg);
-			*msg = NULL;
 			gp_log (GP_LOG_ERROR, "hp215", "read %02x instead of expected 04", eot);
 			return GP_ERROR_IO;
 		}
 		ackret = hp_send_ack (camera);
-		if (ackret < GP_OK) {
-			free (*msg);
-			*msg = NULL;
+		if (ackret < GP_OK)
 			return ackret;
-		}
 	} else {
 		/* short reply - normal mode, do not copy E0 E0  */
 		*msg = malloc (replydatalen-2);
@@ -384,7 +370,8 @@ hp_send_command_and_receive_blob(
 		memcpy (*msg, msgbuf+5, replydatalen-2);
 	}
 	gp_log (GP_LOG_DEBUG, "hp215", "Read Blob: retcode is %04x", *retcode);
-	GP_LOG_DATA ((char*)*msg, *msglen, "Read Blob: argument block is:");
+	gp_log (GP_LOG_DEBUG, "hp215", "Read Blob: argument block is:");
+	gp_log_data ("hp215", (char*)*msg, *msglen);
 	return GP_OK;
 }
 
@@ -592,11 +579,8 @@ get_info_func (CameraFilesystem *fs, const char *folder, const char *filename,
 	free (buf);
 	if (ret < GP_OK)
 		return ret;
-
-	if (msglen < 2) {
-		free (msg);
+	if (msglen < 2)
 		return GP_ERROR_IO;
-	}
 
 /*
 0000  80 80 80 85 86 85-84 84 30 31 2f 30 32 2f  ..........01/02/
@@ -606,10 +590,8 @@ get_info_func (CameraFilesystem *fs, const char *folder, const char *filename,
  */
 	xmsg = msg;
 	ret = decode_u32(&xmsg, &msglen, &val);
-	if (ret < GP_OK) {
-		free (msg);
+	if (ret < GP_OK)
 		return ret;
-	}
 	memset (info, 0, sizeof(*info));
 	info->file.fields = GP_FILE_INFO_SIZE;
 	info->file.size = val;
@@ -622,10 +604,8 @@ get_info_func (CameraFilesystem *fs, const char *folder, const char *filename,
 	msglen	-= 2;
 
 	ret = decode_u32(&xmsg, &msglen, &val);
-	if (ret < GP_OK) {
-		free (msg);
+	if (ret < GP_OK)
 		return ret;
-	}
 	info->preview.fields = GP_FILE_INFO_SIZE;
 	info->preview.size = val;
 

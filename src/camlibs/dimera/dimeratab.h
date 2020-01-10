@@ -10,7 +10,7 @@
    
     -- Chuck Homic <chuck@vvisions.com>
 
-   $Id$
+   $Id: dimeratab.h 9619 2006-12-16 18:27:56Z marcusmeissner $
 */
 #ifndef DIMERATAB_H
 #define DIMERATAB_H

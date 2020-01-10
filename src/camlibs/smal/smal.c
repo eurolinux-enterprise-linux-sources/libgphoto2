@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 #include <config.h>
 #include <stdio.h>
@@ -128,7 +128,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
    if (result < 0)
      return result;
    
-   CHECK_RESULT(gp_file_set_data_and_size (file, (char *)data, size));
+   CHECK_RESULT(gp_file_set_data_and_size (file, data, size));
    
    return (GP_OK);
 }

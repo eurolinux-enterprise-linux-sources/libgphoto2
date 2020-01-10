@@ -106,7 +106,7 @@ m4_ifval([$9],[dnl
 # ----------------------------------------------------------------------
 dnl
 AC_REQUIRE([GP_CONFIG_MSG])dnl
-AC_REQUIRE([PKG_PROG_PKG_CONFIG])dnl
+AC_REQUIRE([GP_PKG_CONFIG])dnl
 AC_REQUIRE([_GP_CHECK_LIBRARY_SOEXT])dnl
 # Use _CFLAGS and _LIBS given to configure.
 # This makes it possible to set these vars in a configure script
@@ -152,8 +152,6 @@ if test "x${[$1][_LIBS]}" = "x" && test "x${[$1][_CFLAGS]}" = "x"; then
 			m4_pushdef([gp_lib_config],[m4_if([$2],[libusb],[libusb-config],
 				[$2],[libgphoto2],[gphoto2-config],
 				[$2],[libgphoto2_port],[gphoto2-port-config],
-				[$2],[gdlib],[gdlib-config],
-				[$2],[libxml-2.0],[xml2-config],
 				[none])])dnl
 			AC_MSG_RESULT([gp_lib_config])
 			AC_PATH_PROG([$1][_CONFIG_PROG],[gp_lib_config])
@@ -399,7 +397,6 @@ if test "x$have_[$1]" = "xyes"; then
 	AC_MSG_CHECKING([$2][ cpp flags])
 	AC_MSG_RESULT(["${[$1][_CFLAGS]}"])
 else
-	[REQUIREMENTS_FOR_][$1][=]
 	GP_CONFIG_MSG([$2],[no])dnl
 fi
 dnl AC_SUBST is done implicitly by AC_ARG_VAR above.

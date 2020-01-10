@@ -17,8 +17,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -45,7 +45,7 @@ static int digita_usb_send(CameraPrivateLibrary *dev, void *buffer, int len)
 int digita_usb_open(CameraPrivateLibrary *dev, Camera *camera)
 {
 	GPPortSettings settings;
-	char buffer[128];
+	unsigned char buffer[128];
 	int ret;
 
 	ret = gp_port_get_settings(camera->port, &settings);

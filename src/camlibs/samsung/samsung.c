@@ -1,8 +1,8 @@
 /* samsung.c
  *
- * Copyright 2000 James McKenzie
- * Copyright 2001 Lutz Mueller
- * Copyright 2002 Marcus Meissner
+ * Copyright © 2000 James McKenzie
+ * Copyright © 2001 Lutz Müller
+ * Copyright © 2002 Marcus Meissner
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,8 +16,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 #include "config.h"
 
@@ -61,7 +61,7 @@
 static int
 SDSC_send (GPPort *port, unsigned char command)
 {
-	CHECK_RESULT (gp_port_write (port, (char *)&command, 1));
+	CHECK_RESULT (gp_port_write (port, &command, 1));
 
 	return (GP_OK);
 }
@@ -85,7 +85,7 @@ SDSC_receive (GPPort *port, unsigned char *buf, int length)
 		}
 
 		/* Read data */
-		result = gp_port_read (port, (char *)buf, length);
+		result = gp_port_read (port, buf, length);
 		if (result < 0) {
 			CHECK_RESULT (SDSC_send (port, SDSC_RETRANSMIT));
 			continue;
@@ -187,18 +187,18 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 		CHECK_RESULT (SDSC_send (camera->port, SDSC_NEXT));
 		CHECK_RESULT (SDSC_send (camera->port, SDSC_START));
 		CHECK_RESULT (SDSC_receive (camera->port, buffer, SDSC_INFOSIZE));
-		if (!strcmp((char*)buffer,filename))
+		if (!strcmp(buffer,filename))
 		    break;
 		if (is_null(buffer)) { /* skipped to the end of the camera? */
 		    /* Since we start at a random position, we wrap around. */
 		    continue;
 	        }
 		/* We are at the first item again, so break. */
-		if (havefirst && !strcmp((char*)first,(char*)buffer))
+		if (havefirst && !strcmp(first,buffer))
 			return GP_ERROR_BAD_PARAMETERS;
 		if (!havefirst) {
 			havefirst = 1;
-			strcpy((char*)first,(char*)buffer);
+			strcpy(first,buffer);
 		}
 	}
 	/* The buffer header has
@@ -206,7 +206,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 	 * filesize (as ascii number) and \0
 	 */
 	/* Extract the size of the file */
-	sscanf((char *)buffer+12,"%ld",&size);
+	sscanf(buffer+12,"%ld",&size);
 	/* Put the camera into image mode */
 	CHECK_RESULT (SDSC_send (camera->port, SDSC_BINARY));
 	CHECK_RESULT (SDSC_send (camera->port, SDSC_START));
@@ -222,7 +222,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 			break;
 		if (result < 0)
 			return result;
-		gp_file_append(file,(char *)buffer,SDSC_BLOCKSIZE);
+		gp_file_append(file,buffer,SDSC_BLOCKSIZE);
 		curread += SDSC_BLOCKSIZE;
 	        gp_context_progress_update(context, pid, curread);
 		if (gp_context_cancel(context) == GP_CONTEXT_FEEDBACK_CANCEL)
@@ -269,7 +269,7 @@ file_list_func (CameraFilesystem *fs, const char *folder, CameraList *list,
 				buffer, SDSC_INFOSIZE));
 		if (is_null (buffer))
 			break;
-		gp_list_append(list, (char *)buffer, NULL);
+		gp_list_append(list, buffer, NULL);
 	}
 	return (GP_OK);
 }
@@ -292,20 +292,20 @@ get_info_func (CameraFilesystem *fs, const char *folder, const char *filename,
 		CHECK_RESULT (SDSC_receive (camera->port,buffer,SDSC_INFOSIZE));
 		if (is_null (buffer))
 			continue;
-		if (!strcmp((char*)buffer,filename)) {
+		if (!strcmp(buffer,filename)) {
 			info->file.fields	= GP_FILE_INFO_WIDTH | GP_FILE_INFO_HEIGHT | GP_FILE_INFO_SIZE;
 			info->file.width	= 1024;
 			info->file.height	= 768;
 			strcpy(info->file.type,GP_MIME_JPEG);
-			sscanf((char *)buffer+12,"%lld",(long long int *)&info->file.size);
+			sscanf(buffer+12,"%lld",&info->file.size);
 			return GP_OK;
 	        }
 		/* We are at the first item again */
-		if (havefirst && !strcmp((char*)first,(char*)buffer))
+		if (havefirst && !strcmp(first,buffer))
 			break;
 		if (!havefirst) {
 			havefirst = 1;
-			strcpy((char*)first,(char*)buffer);
+			strcpy(first,buffer);
 		}
 	}
 	return (GP_OK);

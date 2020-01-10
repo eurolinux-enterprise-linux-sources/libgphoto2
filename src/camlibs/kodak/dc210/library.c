@@ -1,23 +1,4 @@
-/* library.c
- *
- * Copyright (C) 2002 Michel Koltan <koltan@gmx.de>
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
- */
-
+#define _POSIX_C_SOURCE 199309L
 #include "config.h"
 
 #include <stdio.h>
@@ -185,7 +166,7 @@ static int dc210_write_single_char
 	int i;
 
 	for (i=0; i< RETRIES; i++){
-		if (gp_port_write(camera->port, (char *)&response, 1) >= 0)
+		if (gp_port_write(camera->port, &response, 1) >= 0)
 			return (GP_OK);
 	};
 
@@ -204,7 +185,7 @@ static int dc210_read_single_char
 
 	for (i = 0; i < RETRIES; i++){
 
-		error = gp_port_read(camera->port, (char *)response, 1);
+		error = gp_port_read(camera->port, response, 1);
 
 		if (error < 0){
 			if (error == GP_ERROR_TIMEOUT)
@@ -257,7 +238,7 @@ static int dc210_execute_command
 		};
 
 		for (k = 0; k < RETRIES; k++){
-			error = gp_port_read(camera->port, (char *)&response, 1);
+			error = gp_port_read(camera->port, &response, 1);
 			if (error != 1){
 				if (error == GP_ERROR_TIMEOUT){
 					dc210_cmd_error = DC210_TIMEOUT_ERROR;
@@ -326,7 +307,7 @@ static int dc210_write_command_packet
 
 		/* read answer */
 
-		error = gp_port_read(camera->port, (char *)&answer, 1);
+		error = gp_port_read(camera->port, &answer, 1);
 
 		if (error < 0) return GP_ERROR;
 
@@ -359,14 +340,14 @@ static int dc210_wait_for_response
 	int counter = 0;
 	int progress_id = 0;
 
-	if (context)
+	if (context != NULL)
 	  progress_id = gp_context_progress_start (context, expect_busy, _("Waiting..."));
 
 	while (1){
 
 	  error = dc210_read_single_char(camera, &response);
 	  if (error < 0){
-	          if (context)
+	          if (context != 0)
 			  gp_context_progress_stop (context, progress_id);
 		  return error;
 	  };
@@ -374,17 +355,17 @@ static int dc210_wait_for_response
 	  switch (response){
 	  case DC210_BUSY:
 		  /* wait a little bit longer */
-		  if (context && counter <= expect_busy)
+		  if (context != NULL && counter <= expect_busy)
 			  gp_context_progress_update (context, progress_id, counter++);
 		  break;
 	  case DC210_COMMAND_COMPLETE:
 	  case DC210_PACKET_FOLLOWING:
-		  if (context)
+		  if (context != 0)
 			  gp_context_progress_stop (context, progress_id);
 		  return response;
 		  break;
 	  default:
-		  if (context)
+		  if (context != 0)
 			  gp_context_progress_stop (context, progress_id);
 		  DC210_DEBUG("Command terminated with errorcode 0x%02X.\n", response);
 		  return GP_ERROR;
@@ -407,7 +388,7 @@ static int dc210_read_single_block
 
     error = 1;
     for (k = 0; k < RETRIES; k++){
-      if (gp_port_read(camera->port, (char *)b, blocksize) < 0){
+      if (gp_port_read(camera->port, b, blocksize) < 0){
 	continue;
       };
       error = 0;
@@ -416,7 +397,7 @@ static int dc210_read_single_block
   
     if (error) return GP_ERROR;
 
-    if (dc210_read_single_char(camera, (unsigned char *)&cs_read) < 0)
+    if (dc210_read_single_char(camera, &cs_read) < 0)
       return GP_ERROR;
 
     cs_computed = 0;
@@ -451,7 +432,7 @@ static int dc210_read_to_file
 
   if (remaining) blocks++;
 
-  if (context)
+  if (context != NULL)
 	  progress_id = gp_context_progress_start (context, blocks, _("Getting data..."));
 
   fatal_error = 0;
@@ -462,7 +443,7 @@ static int dc210_read_to_file
 	  fatal_error = 1;
 	  for (k = 0; k < RETRIES; k++){
 		  /* read packet */
-	          if (gp_port_read(camera->port, (char *)b, blocksize) < 0){
+	          if (gp_port_read(camera->port, b, blocksize) < 0){
 		          dc210_write_single_char(camera, DC210_ILLEGAL_PACKET);
 			  packet_following = dc210_wait_for_response(camera, 0, NULL);
 			  continue;
@@ -483,14 +464,14 @@ static int dc210_read_to_file
 		  };
 		  /* append to file */
 		  if (packets == blocks - 1 && remaining)
-			  gp_file_append(f, (char *)b, remaining);
+			  gp_file_append(f, b, remaining);
 		  else
-			  gp_file_append(f, (char *)b, blocksize);
+			  gp_file_append(f, b, blocksize);
 		  /* request next packet */
 		  dc210_write_single_char(camera, DC210_CORRECT_PACKET);
 		  packet_following = dc210_wait_for_response(camera, 0, NULL);
 		  fatal_error = 0;
-		  if (context)
+		  if (context != NULL)
 			  gp_context_progress_update (context, progress_id, packets);
 		  packets++;
 		  break;
@@ -501,7 +482,7 @@ static int dc210_read_to_file
   if (packet_following < 0)
 	  fatal_error = 1;
 
-  if (context)
+  if (context != 0)
 	  gp_context_progress_stop (context, progress_id);
 
   free(b);
@@ -644,14 +625,14 @@ static int dc210_format_card (Camera * camera, char * album_name, GPContext * co
   dc210_write_command_packet(camera, data);
   if (dc210_wait_for_response(camera, 3, context) != DC210_PACKET_FOLLOWING) return GP_ERROR;
 
-  gp_port_read(camera->port, (char *)answer, 16);
-  gp_port_read(camera->port, (char *)&checksum_read, 1);
+  gp_port_read(camera->port, answer, 16);
+  gp_port_read(camera->port, &checksum_read, 1);
   checksum = 0;
 
   for (i = 0; i < 16; i++) checksum ^= answer[i];
   if (checksum_read != checksum) return GP_ERROR;
 
-  DC210_DEBUG("Flash card formatted.\n");
+  DC210_DEBUG("Flash card formated.\n");
 
   if (dc210_write_single_char(camera, DC210_CORRECT_PACKET) == GP_ERROR) return GP_ERROR;
   if (dc210_wait_for_response(camera, 0, NULL) != DC210_COMMAND_COMPLETE) return GP_ERROR;
@@ -677,8 +658,8 @@ static int dc210_get_card_status (Camera * camera, dc210_card_status * card_stat
   dc210_execute_command(camera, cmd);
   if (dc210_wait_for_response(camera, 0, NULL) != DC210_PACKET_FOLLOWING) return GP_ERROR;
 
-  gp_port_read(camera->port, (char *)answer, 16);
-  gp_port_read(camera->port, (char *)&checksum_read, 1);
+  gp_port_read(camera->port, answer, 16);
+  gp_port_read(camera->port, &checksum_read, 1);
 
   checksum = 0;
   for (i = 0; i < 16; i++) checksum ^= answer[i];
@@ -717,7 +698,7 @@ int dc210_format_callback(Camera * camera, CameraWidget * widget, GPContext * co
 
 static int dc210_check_battery (Camera *camera){
 
-  char cmd[8];
+  unsigned char cmd[8];
   dc210_cmd_init(cmd, DC210_CHECK_BATTERY);
 	
   if (dc210_execute_command(camera, cmd) == GP_ERROR) return GP_ERROR;
@@ -766,7 +747,7 @@ int dc210_init_port (Camera *camera){
 	
 	gp_camera_set_port_speed(camera, 9600);
 	gp_port_send_break(camera->port, 300);
-	usleep(300 * 1000);
+	GP_SYSTEM_SLEEP(300);
 
 	/* Excellent. Now our dummy command should work */
 
@@ -803,7 +784,7 @@ int dc210_set_speed (Camera *camera, int speed) {
 	unsigned char cmd[8];
 	GPPortSettings settings;
 
-	dc210_cmd_init((char*)cmd, DC210_SET_SPEED);
+	dc210_cmd_init(cmd, DC210_SET_SPEED);
 	
 	switch (speed) {
 	case 9600:
@@ -820,7 +801,7 @@ int dc210_set_speed (Camera *camera, int speed) {
 		return (GP_ERROR);
 	};
 
-	if (dc210_execute_command(camera, (char*)cmd) == GP_ERROR) return GP_ERROR;
+	if (dc210_execute_command(camera, cmd) == GP_ERROR) return GP_ERROR;
 
 	gp_port_get_settings (camera->port, &settings);
 	settings.serial.speed = speed;
@@ -1129,7 +1110,7 @@ static void dc210_picinfo_from_block (dc210_picture_info * picinfo, unsigned cha
 	picinfo->f_number = data[26];
 	picinfo->battery = data[27];
 	picinfo->exposure_time = data[28] * 0x1000000 + data[29] * 0x10000 + data[30] * 0x100 + data[31];
-	strncpy(picinfo->image_name, (char *)&data[32], 12);
+	strncpy(picinfo->image_name, &data[32], 12);
 	picinfo->image_name[12] = 0;
 	
 }
@@ -1193,7 +1174,7 @@ int dc210_get_status (Camera *camera, dc210_status *status) {
 	dc210_cmd_init(cmd, DC210_GET_STATUS);
 	
 	if (dc210_execute_command(camera, cmd) == GP_ERROR) return GP_ERROR;
-	if (dc210_read_single_block(camera, (unsigned char *)data, DC210_STATUS_SIZE) == GP_ERROR) return GP_ERROR;
+	if (dc210_read_single_block(camera, data, DC210_STATUS_SIZE) == GP_ERROR) return GP_ERROR;
 	if (dc210_wait_for_response(camera, 0, NULL) != DC210_COMMAND_COMPLETE) return GP_ERROR;
 
 #ifdef DEBUG

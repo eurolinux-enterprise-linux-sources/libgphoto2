@@ -16,9 +16,8 @@
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with puppy; if not, write to the 
-  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-  Boston, MA  02110-1301  USA
+  along with puppy; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #define _BSD_SOURCE
@@ -53,12 +52,12 @@
 #include <utime.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <fcntl.h>
 
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_H)
-# include <iconv.h>
-# include <langinfo.h>
-#endif
+#include <iconv.h>
+#include <langinfo.h>
 
 #include "usb_io.h"
 #include "tf_bytes.h"
@@ -66,13 +65,9 @@
 #define PUT 0
 #define GET 1
 
-#if 0
 static int quiet = 0;
-#endif
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_H)
 static iconv_t cd_locale_to_latin1;
 static iconv_t cd_latin1_to_locale;
-#endif
 
 struct _mapnames {
 	char *tfname;
@@ -91,7 +86,6 @@ backslash(char *path) {
 		*s='\\';
 }
 
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_H)
 static char*
 strdup_to_latin1 (const char *str) {
 	size_t	ret, srclen, dstlen, ndstlen;
@@ -143,7 +137,7 @@ strdup_to_locale (char *str) {
 		if (ret == -1) {
 			perror("iconv");
 			free (dest);
-			return NULL;
+			dest = NULL;
 		}
 		break;
 	}
@@ -156,10 +150,6 @@ strdup_to_locale (char *str) {
 	}
 	return dest;
 }
-#else
-# define strdup_to_latin1 strdup
-# define strdup_to_locale strdup
-#endif
 
 static char*
 _convert_and_logname(Camera *camera, char *tfname) {
@@ -288,7 +278,6 @@ do_cmd_turbo(Camera *camera, char *state, GPContext *context)
 	return GP_ERROR_IO;
 }
 
-#if 0
 static int
 do_cmd_reset(Camera *camera, GPContext *context)
 {
@@ -319,7 +308,6 @@ do_cmd_reset(Camera *camera, GPContext *context)
 	}
 	return GP_ERROR_IO;
 }
-#endif
 
 static int
 do_cmd_ready(Camera *camera, GPContext *context)
@@ -342,6 +330,7 @@ do_cmd_ready(Camera *camera, GPContext *context)
 
 	case FAIL:
 		gp_log (GP_LOG_ERROR, "topfield", "ERROR: Device reports %s\n", decode_error(&reply));
+		get_u32(&reply.data);
 		break;
 
 	default:
@@ -351,7 +340,6 @@ do_cmd_ready(Camera *camera, GPContext *context)
 	return GP_OK;
 }
 
-#if 0
 static int
 do_cancel(Camera *camera, GPContext *context)
 {
@@ -382,7 +370,7 @@ do_cancel(Camera *camera, GPContext *context)
 	}
 	return GP_ERROR_IO;
 }
-#endif
+
 
 static void
 decode_dir(Camera *camera, struct tf_packet *p, int listdirs, CameraList *list)
@@ -471,7 +459,6 @@ decode_and_get_info(Camera *camera, const char *folder, struct tf_packet *p, con
     }
 }
 
-#if 0
 static int
 do_hdd_rename(Camera *camera, char *srcPath, char *dstPath, GPContext *context)
 {
@@ -537,7 +524,7 @@ static void finalStats(uint64_t bytes, time_t startTime)
                 ((bytes * 8.0) / delta) / (1000.0 * 1000.0));
     }
 }
-#endif
+
 
 static int
 camera_config_get (Camera *camera, CameraWidget **window, GPContext *context) 
@@ -587,7 +574,6 @@ camera_config_set (Camera *camera, CameraWidget *window, GPContext *context)
 		const char* val;
 		int ival;
 
-	        gp_widget_set_changed (turbo, FALSE);
 		ret = gp_widget_get_value (turbo, &val);
 		if (ret == GP_OK) {
 			ival = !strcmp (val, _("On"));
@@ -1198,10 +1184,8 @@ CameraFilesystemFuncs fsfuncs = {
 static int
 camera_exit (Camera *camera, GPContext *context)
 {
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_H)
 	iconv_close (cd_latin1_to_locale);
 	iconv_close (cd_locale_to_latin1);
-#endif
 	free (camera->pl->names);
 	free (camera->pl);
 	return GP_OK;
@@ -1227,14 +1211,12 @@ camera_init (Camera *camera, GPContext *context)
 	camera->pl = calloc (sizeof (CameraPrivateLibrary),1);
 	if (!camera->pl) return GP_ERROR_NO_MEMORY;
 
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_H)
 	curloc = nl_langinfo (CODESET);
 	if (!curloc) curloc="UTF-8";
 	cd_latin1_to_locale = iconv_open(curloc, "iso-8859-1");
 	if (!cd_latin1_to_locale) return GP_ERROR_NO_MEMORY;
 	cd_locale_to_latin1 = iconv_open("iso-8859-1", curloc);
 	if (!cd_locale_to_latin1) return GP_ERROR_NO_MEMORY;
-#endif
 
 	do_cmd_ready (camera, context);
 	return GP_OK;

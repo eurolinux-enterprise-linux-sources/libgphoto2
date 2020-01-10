@@ -1,7 +1,7 @@
 /* largan.c
  *
- * Copyright 2001 Lutz Mueller <lutz@users.sourceforge.net>
- * Copyright 2002 Hubert Figuiere <hfiguiere@teaser.fr>
+ * Copyright © 2001 Lutz Müller <lutz@users.sourceforge.net>
+ * Copyright © 2002 Hubert Figuiere <hfiguiere@teaser.fr>
  * Code largely borrowed to lmini-0.1 by Steve O Connor
  *
  * This library is free software; you can redistribute it and/or
@@ -16,8 +16,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 /*
@@ -264,7 +264,7 @@ static CameraFilesystemFuncs fsfuncs = {
 int
 camera_init (Camera *camera, GPContext *context) 
 {
-	int ret;
+	int ret, selected_speed = 0;
 	GPPortSettings settings;
 
         /* First, set up all the function pointers */
@@ -286,6 +286,7 @@ camera_init (Camera *camera, GPContext *context)
 	case GP_PORT_SERIAL:
 
 		/* Remember the selected speed */
+		selected_speed = settings.serial.speed;
 
 		settings.serial.speed    = 19200;/* initial speed is 19200 */
 		settings.serial.bits     = 8;

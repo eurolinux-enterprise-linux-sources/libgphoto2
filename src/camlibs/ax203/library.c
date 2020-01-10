@@ -13,9 +13,8 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the 
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #define _BSD_SOURCE
@@ -24,7 +23,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 #include <gd.h>
 #endif
 
@@ -167,7 +166,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 {
 	Camera *camera = data;
 	int idx, size;
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 	int ret;
 	gdImagePtr im;
 	void *gdpng;
@@ -190,7 +189,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 		return GP_OK;
 	}
 
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 	if (type != GP_FILE_TYPE_NORMAL)
 		return GP_ERROR_NOT_SUPPORTED;
 
@@ -228,7 +227,7 @@ static int
 put_file_func (CameraFilesystem *fs, const char *folder, const char *name, 
 	CameraFileType type, CameraFile *file, void *data, GPContext *context)
 {
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 	Camera *camera = data;
 	char *filedata = NULL;
 	int ret, in_width, in_height, in_x, in_y;
@@ -541,19 +540,12 @@ camera_init (Camera *camera, GPContext *context)
 		  ax203_get_free_mem_size (camera));
 
 	if (camera->pl->syncdatetime) {
-		struct tm *xtm;
-#ifdef HAVE_LOCALTIME_R
 		struct tm tm;
-#endif
 		time_t t;
 
 		t = time (NULL);
-#ifdef HAVE_LOCALTIME_R
-		if ((xtm = localtime_r (&t , &tm))) {
-#else
-		if ((xtm = localtime (&t))) {
-#endif
-			ret = ax203_set_time_and_date (camera, xtm);
+		if (localtime_r (&t , &tm)) {
+			ret = ax203_set_time_and_date (camera, &tm);
 			if (ret != GP_OK) {
 				camera_exit (camera, context);
 				return ret;

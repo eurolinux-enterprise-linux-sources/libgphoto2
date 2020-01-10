@@ -223,7 +223,7 @@ find_init (int len)
  *   program with a message to stderr.
  *
  */
-int
+unsigned short
 canon_psa50_gen_crc (const unsigned char *pkt, int len)
 {
 	int init;
@@ -232,7 +232,7 @@ canon_psa50_gen_crc (const unsigned char *pkt, int len)
 	if (init != -1)
 		return chksum (init, len, pkt);
 	fprintf (stderr, _("FATAL ERROR: initial CRC value for length %d unknown\n"), len);
-	return -1;
+	exit (1);
 }
 
 
@@ -245,7 +245,7 @@ guess (const unsigned char *m, int len, int crc)
 		if (chksum (i, len, m) == crc)
 			return i;
 	fprintf (stderr, _("unable to guess initial CRC value\n"));
-	return -1;
+	exit (1);
 }
 
 /**

@@ -8,7 +8,7 @@ bin_SCRIPTS = gphoto2-config
 EXTRA_DIST = HACKING MAINTAINERS TESTERS installcheck.mk
 
 # Note: @subdirs@ lists all the directories from AC_CONFIG_SUBDIRS()
-SUBDIRS = @subdirs@ libgphoto2 camlibs tests examples po packaging doc gphoto-m4
+SUBDIRS = @subdirs@ libgphoto2 camlibs tests examples po packaging doc
 
 EXTRA_DIST    += libgphoto2.pc.in
 pkgconfig_DATA = libgphoto2.pc
@@ -79,7 +79,7 @@ install-camlibs:
 # are required in the top level Makefile.am for the automatic 
 # re-building of the build system files.
 
-ACLOCAL_AMFLAGS = -I auto-m4 -I gphoto-m4
+ACLOCAL_AMFLAGS = -I auto-m4 -I m4m
 
 
 ########################################################################
@@ -103,3 +103,22 @@ endif
 # released version
 cvs-tags: Makefile
 	@echo cvs tag "@PACKAGE@-$$(echo '@VERSION@' | sed -e 's/\./_/g' -e 's/rc/-rc/g')"
+
+
+
+########################################################################
+# Compatibility for header inclusions.
+#
+# - Old code has -I/usr/include/gphoto2
+#   #include <gphoto2-camera.h>
+#
+# - New code has -I/usr/include
+#   #include <gphoto2/gphoto2-camera.h>
+
+install-data-local:
+	rm -f $(DESTDIR)$(includedir)/gphoto2/gphoto2
+	$(INSTALL) -m 0755 -d $(DESTDIR)$(includedir)/gphoto2
+	$(LN_S) . $(DESTDIR)$(includedir)/gphoto2/gphoto2
+
+uninstall-local:
+	rm -f $(DESTDIR)$(includedir)/gphoto2/gphoto2

@@ -5,7 +5,7 @@
  * Olympus 3000z code, based on data from:
  * 	Till Kamppeter <till.kamppeter@gmx.net>
  * Original code:
- *  Copyright 2002 Patrick Mansfield <patman@aracnet.com>
+ *  Copyright © 2002 Patrick Mansfield <patman@aracnet.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,8 +19,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 #include <stdio.h>
 #include <_stdint.h>
@@ -614,9 +614,9 @@ static const ValueNameType olysp500uz_reg_20_val_names[] = {
 	{ { 0x00 }, N_("Auto") },
 	{ { 0x01 }, N_("Daylight") },
 	{ { 0x03 }, N_("Tungsten") },
-	{ { 0x04 }, N_("Fluorescent-1-home-6700K") },
-	{ { 0x05 }, N_("Fluorescent-2-desk-5000K") },
-	{ { 0x06 }, N_("Fluorescent-3-office-4200K") },
+	{ { 0x04 }, N_("Flourescent-1-home-6700K") },
+	{ { 0x05 }, N_("Flourescent-2-desk-5000K") },
+	{ { 0x06 }, N_("Flourescent-3-office-4200K") },
 	{ { 0x09 }, N_("Dusk") },
 	{ { 0x0a }, N_("Preset") },
 	{ { 0xff }, N_("Cloudy") },

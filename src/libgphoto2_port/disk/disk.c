@@ -1,7 +1,7 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*- */
 /* gphoto2-port-usb.c
  *
- * Copyright (c) 2001 Lutz Mueller <lutz@users.sf.net>
+ * Copyright (c) 2001 Lutz Müller <lutz@users.sf.net>
  * Copyright (c) 1999-2000 Johannes Erdfelt <johannes@erdfelt.com>
  * Copyright (c) 2005, 2007 Hubert Figuiere <hub@figuiere.net>
  *
@@ -17,17 +17,23 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
 #include <gphoto2/gphoto2-port-library.h>
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/time.h>
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#include <dirent.h>
 #include <string.h>
 #ifdef HAVE_MNTENT_H
 # include <mntent.h>
@@ -97,7 +103,8 @@ gp_port_library_list (GPPortInfoList *list)
 	if (mnt) {
 		while ((mntent = getmntent (mnt))) {
 			/* detect floppies so we don't access them with the stat() below */
-			GP_LOG_D ("found fstab fsname %s", mntent->mnt_fsname);
+			gp_log(GP_LOG_DEBUG, "gphoto2-port/disk",
+			       "found fstab fsname %s", mntent->mnt_fsname);
 
 			if ((NULL != strstr(mntent->mnt_fsname,"fd"))	||
 			    (NULL != strstr(mntent->mnt_fsname,"floppy")) ||
@@ -115,29 +122,10 @@ gp_port_library_list (GPPortInfoList *list)
                             (NULL != strstr(mntent->mnt_fsname,"devtmpfs"))||
                             (NULL != strstr(mntent->mnt_fsname,"devpts"))||
                             (NULL != strstr(mntent->mnt_fsname,"sysfs"))||
-			    (NULL != strstr(mntent->mnt_fsname,"gphotofs"))||
-			/* fstype based */
-			    (NULL != strstr(mntent->mnt_type,"autofs"))	||
-			    (NULL != strstr(mntent->mnt_type,"nfs"))	||
-			    (NULL != strstr(mntent->mnt_type,"smbfs"))||
-			    (NULL != strstr(mntent->mnt_type,"proc"))||
-			    (NULL != strstr(mntent->mnt_type,"sysfs"))||
-			    (NULL != strstr(mntent->mnt_type,"cifs"))||
-			    (NULL != strstr(mntent->mnt_type,"afs")) ||
-			/* mount options */
-				/* x-systemd.automount or similar */
-			    (NULL != strstr(mntent->mnt_opts,"automount"))
+			    (NULL != strstr(mntent->mnt_fsname,"gphotofs"))
 			) {
 				continue;
 			}
-
-			/* Whitelist some fuse based filesystems, e.g. to help exfat mounts */
-			/* In general, if we are backed by a device, it is probably good(tm) */
-			if (NULL != strstr(mntent->mnt_type,"fuse")) {
-				if (!strstr(mntent->mnt_fsname,"/dev/"))
-					continue;
-			}
-
 			snprintf (path, sizeof(path), "%s/DCIM", mntent->mnt_dir);
 			if (-1 == stat(path, &stbuf)) {
 				snprintf (path, sizeof(path), "%s/dcim", mntent->mnt_dir);
@@ -167,7 +155,8 @@ gp_port_library_list (GPPortInfoList *list)
 	if (mnt) {
 		while ((mntent = getmntent (mnt))) {
 			/* detect floppies so we don't access them with the stat() below */
-			GP_LOG_D ("found mtab fsname %s", mntent->mnt_fsname);
+			gp_log(GP_LOG_DEBUG, "gphoto2-port/disk",
+			       "found mtab fsname %s", mntent->mnt_fsname);
 
 			if ((NULL != strstr(mntent->mnt_fsname,"fd"))	||
 			    (NULL != strstr(mntent->mnt_fsname,"floppy")) ||
@@ -185,25 +174,9 @@ gp_port_library_list (GPPortInfoList *list)
                             (NULL != strstr(mntent->mnt_fsname,"devtmpfs"))||
                             (NULL != strstr(mntent->mnt_fsname,"devpts"))||
                             (NULL != strstr(mntent->mnt_fsname,"sysfs"))||
-			    (NULL != strstr(mntent->mnt_fsname,"gphotofs"))||
-			/* fstype based */
-			    (NULL != strstr(mntent->mnt_type,"autofs"))	||
-			    (NULL != strstr(mntent->mnt_type,"nfs"))	||
-			    (NULL != strstr(mntent->mnt_type,"smbfs"))||
-			    (NULL != strstr(mntent->mnt_type,"proc"))||
-			    (NULL != strstr(mntent->mnt_type,"sysfs"))||
-			    (NULL != strstr(mntent->mnt_type,"cifs"))||
-			    (NULL != strstr(mntent->mnt_type,"afs")) ||
-			/* options */
-			    (NULL != strstr(mntent->mnt_opts,"automount"))
+			    (NULL != strstr(mntent->mnt_fsname,"gphotofs"))
 			) {
 				continue;
-			}
-			/* Whitelist some fuse based filesystems, e.g. to help exfat mounts */
-			/* In general, if we are backed by a device, it is probably good(tm) */
-			if (NULL != strstr(mntent->mnt_type,"fuse")) {
-				if (!strstr(mntent->mnt_fsname,"/dev/"))
-					continue;
 			}
 
 			snprintf (path, sizeof(path), "%s/DCIM", mntent->mnt_dir);
@@ -295,18 +268,23 @@ gp_port_library_list (GPPortInfoList *list)
 	}
 #  endif
 # endif
+
 	/* generic disk:/xxx/ matcher */
 	gp_port_info_new (&info);
 	gp_port_info_set_type (info, GP_PORT_DISK);
 	gp_port_info_set_name (info, "");
 	gp_port_info_set_path (info, "^disk:");
-	gp_port_info_list_append (list, info); /* do not check return */
+	CHECK (gp_port_info_list_append (list, info));
 	return GP_OK;
 }
 
 static int gp_port_disk_init (GPPort *dev)
 {
-	C_MEM (dev->pl = calloc (1, sizeof (GPPortPrivateLibrary)));
+	dev->pl = malloc (sizeof (GPPortPrivateLibrary));
+	if (!dev->pl) {
+		return GP_ERROR_NO_MEMORY;
+	}
+	memset (dev->pl, 0, sizeof(GPPortPrivateLibrary));
 
 	return GP_OK;
 }
@@ -314,8 +292,10 @@ static int gp_port_disk_init (GPPort *dev)
 static int
 gp_port_disk_exit (GPPort *port)
 {
-	free (port->pl);
-	port->pl = NULL;
+	if (port->pl) {
+		free (port->pl);
+		port->pl = NULL;
+	}
 
 	return GP_OK;
 }
@@ -349,9 +329,11 @@ gp_port_library_operations (void)
 {
 	GPPortOperations *ops;
 
-	ops = calloc (1, sizeof (GPPortOperations));
-	if (!ops)
+	ops = malloc (sizeof (GPPortOperations));
+	if (!ops) {
 		return NULL;
+	}
+	memset (ops, 0, sizeof (GPPortOperations));
 
 	ops->init   = gp_port_disk_init;
 	ops->exit   = gp_port_disk_exit;

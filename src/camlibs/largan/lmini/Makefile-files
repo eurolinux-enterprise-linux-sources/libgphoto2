@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += largan/lmini/README.largan-lmini largan/lmini/ChangeLog
 camlibdoc_DATA += largan/lmini/README.largan-lmini
 

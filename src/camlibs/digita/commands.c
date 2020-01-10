@@ -17,8 +17,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -45,9 +45,9 @@ static void build_command(struct digita_command *cmd, int length, short command)
 
 	/* Length is the sizeof the digita_command minus the length */
 	/*  parameter, plus whatever other data we send */
-	cmd->length = htobe32(sizeof(struct digita_command) -
+	cmd->length = htonl(sizeof(struct digita_command) -
 		sizeof(unsigned int) + length);
-	cmd->command = htobe16(command);
+	cmd->command = htons(command);
 }
 
 struct storage_status {
@@ -80,11 +80,11 @@ int digita_get_storage_status(CameraPrivateLibrary *dev, int *taken,
 	}
 
 	if (taken)
-		*taken = be32toh(ss.takencount);
+		*taken = ntohl(ss.takencount);
 	if (available)
-		*available = be32toh(ss.availablecount);
+		*available = ntohl(ss.availablecount);
 	if (rawcount)
-		*rawcount = be32toh(ss.rawcount);
+		*rawcount = ntohl(ss.rawcount);
 
 	return 0;
 }
@@ -110,7 +110,7 @@ int digita_get_file_list(CameraPrivateLibrary *dev)
 	}
 
 	build_command(&gfl.cmd, sizeof(gfl) - sizeof(gfl.cmd), DIGITA_GET_FILE_LIST);
-	gfl.listorder = htobe32(1);
+	gfl.listorder = htonl(1);
 
 	ret = dev->send(dev, (void *)&gfl, sizeof(gfl));
 	if (ret < 0) {
@@ -158,7 +158,7 @@ int digita_get_file_data(CameraPrivateLibrary *dev, int thumbnail,
 
 	memcpy(&gfds.fn, filename, sizeof(gfds.fn));
 	memcpy(&gfds.tag, tag, sizeof(gfds.tag));
-	gfds.dataselector = htobe32(thumbnail);
+	gfds.dataselector = htonl(thumbnail);
 
 	tbuf = malloc(GFD_BUFSIZE + sizeof(*gfdr));
 	if (!tbuf) {
@@ -187,7 +187,7 @@ int digita_get_file_data(CameraPrivateLibrary *dev, int thumbnail,
 		return gfdr->cmd.result;
 	}
 
-	memcpy(buffer, tbuf + sizeof(*gfdr), be32toh(gfdr->tag.length) + (thumbnail ? 16 : 0));
+	memcpy(buffer, tbuf + sizeof(*gfdr), ntohl(gfdr->tag.length) + (thumbnail ? 16 : 0));
 	memcpy(tag, &gfdr->tag, sizeof(*tag));
 
 	free(tbuf);

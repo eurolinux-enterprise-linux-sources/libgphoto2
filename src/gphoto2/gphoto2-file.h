@@ -19,8 +19,8 @@
  * \note
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #ifndef __GPHOTO2_FILE_H__
@@ -33,7 +33,6 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#define GP_MIME_TXT       "text/plain"
 #define GP_MIME_WAV       "audio/wav"
 #define GP_MIME_RAW       "image/x-raw"
 #define GP_MIME_PNG       "image/png"
@@ -47,7 +46,6 @@ extern "C" {
 #define GP_MIME_AVI       "video/x-msvideo"
 #define GP_MIME_CRW       "image/x-canon-raw"
 #define GP_MIME_CR2       "image/x-canon-cr2"
-#define GP_MIME_NEF       "image/x-nikon-nef"
 #define GP_MIME_UNKNOWN   "application/octet-stream"
 #define GP_MIME_EXIF      "application/x-exif"
 #define GP_MIME_MP3       "audio/mpeg"
@@ -57,7 +55,6 @@ extern "C" {
 #define GP_MIME_MPEG      "video/mpeg"
 #define GP_MIME_AVCHD     "video/mp2t"
 #define GP_MIME_RW2       "image/x-panasonic-raw2"
-#define GP_MIME_ARW       "image/x-sony-arw"
 
 /**
  * \brief The type of view on the specified file.

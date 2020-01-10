@@ -13,9 +13,8 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the 
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 #define _BSD_SOURCE
 #define _POSIX_C_SOURCE 1
@@ -28,9 +27,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <fcntl.h>
-#ifdef HAVE_SYS_MMAN_H
-# include <sys/mman.h>
-#endif
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -47,30 +44,21 @@ struct image_table_entry {
    buffers, as they use O_DIRECT. */
 static char *st2205_malloc_page_aligned(int size)
 {
-#ifdef HAVE_SYS_MMAN_H
 	int fd;
 	char *aligned;
 	
 	fd = open ("/dev/zero", O_RDWR);
 	aligned = mmap (0, size, PROT_READ|PROT_WRITE,MAP_PRIVATE, fd, 0);
-	close (fd);
 	if (aligned == MAP_FAILED)
 		return NULL;
+
 	return aligned;
-#else
-	/* hope for the best */
-	return malloc(size);
-#endif
 }
 
 static void st2205_free_page_aligned(char *aligned, int size)
 {
-#ifdef HAVE_SYS_MMAN_H
 	if (aligned != NULL)
 		munmap(aligned, size);
-#else
-	free (aligned);
-#endif
 }
 
 static int
@@ -217,21 +205,15 @@ st2205_detect_mem_size(Camera *camera)
 	}
 
 	ret = st2205_read_block(camera, 0, buf0);
-	if (ret) {
-		st2205_free_page_aligned(buf0, ST2205_BLOCK_SIZE);
-		st2205_free_page_aligned(buf1, ST2205_BLOCK_SIZE);
+	if (ret)
 		return ret;
-	}
 
 	for (i = 0; i < 3; i++) {
 		ret = st2205_read_block(camera,
 					(524288 / ST2205_BLOCK_SIZE) << i,
 					buf1);
-		if (ret) {
-			st2205_free_page_aligned(buf0, ST2205_BLOCK_SIZE);
-			st2205_free_page_aligned(buf1, ST2205_BLOCK_SIZE);
+		if (ret)
 			return ret;
-		}
 		if (memcmp(buf0, buf1, ST2205_BLOCK_SIZE) == 0)
 			break;
 	}
@@ -587,7 +569,6 @@ st2205_real_write_file(Camera *camera,
 					  allow_uv_corr);
 	else
 		size = st2205_rgb24_to_rgb565 (camera->pl, rgb24, buf);
-	if (size < GP_OK) return size;
 
 	count = st2205_read_file_count (camera);
 	if (count < 0) return count;
@@ -677,12 +658,8 @@ st2205_write_file(Camera *camera,
 	unsigned char buf[camera->pl->width * camera->pl->height * 2];
 	int shuffle;
 
-#ifdef HAVE_RAND_R
 	shuffle = (long long)rand_r(&camera->pl->rand_seed) *
 		   camera->pl->no_shuffles / (RAND_MAX + 1ll);
-#else
-	shuffle = (long long)rand() * camera->pl->no_shuffles / (RAND_MAX + 1ll);
-#endif
 
 	return st2205_real_write_file (camera, filename, rgb24, buf,
 				       shuffle, 1);
@@ -810,22 +787,40 @@ st2205_commit(Camera *camera)
 static int
 st2205_init(Camera *camera)
 {
-	const uint8_t *shuffle_src;
-	int x, y, i, j, shuffle_size, checksum;
+	uint16_t *lookup_src, *dest;
+	uint8_t *shuffle_src;
+	int x, y, i, j, shuffle_size, checksum, expected_checksum;
 	int is240x320 = 0;
 	const struct {
 		int width, height, no_tables, usable_tables;
 		unsigned char unknown3[8];
+		int checksum;
 	} shuffle_info[] = {
 		{ 128, 160, 8, 7, /* Last shuffle table does not work ?? */
-		  { 0xff, 0xff, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 }, },
+		  { 0xff, 0xff, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02 },
+		  0x00035200 },
 		{ 128, 128, 7, 7,
-		  { 0xff, 0xff, 0x01, 0x01, 0x01, 0x01, 0x01 }, },
+		  { 0xff, 0xff, 0x01, 0x01, 0x01, 0x01, 0x01 },
+		  0x00025800 },
 		{ 120, 160, 7, 7,
-		  { 0xff, 0xff, 0x04, 0x04, 0x04, 0x04, 0x04 }, },
+		  { 0xff, 0xff, 0x04, 0x04, 0x04, 0x04, 0x04 },
+		  0x00030570 },
 		{ 96, 64, 7, 7,
-		  { 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00 }, },
+		  { 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00 },
+		  0x00008700 },
 		{ 0, 0, 0 }
+	};
+	const struct {
+		int lookup_offset;
+		int firmware_size;
+		int picture_start;
+		int no_fats;
+	} version_info[] = {
+		{ ST2205_V1_LOOKUP_OFFSET, ST2205_V1_FIRMWARE_SIZE,
+		  ST2205_V1_PICTURE_START, 4 },
+		{ ST2205_V2_LOOKUP_OFFSET, ST2205_V2_FIRMWARE_SIZE,
+		  ST2205_V2_PICTURE_START, 1 },
+		{ }
 	};
 	const int uncompressed_firmware_checksums[] = {
 	        0x00ab02fc, /* Frame 96x64 from blokker (Netherlands) */
@@ -842,14 +837,6 @@ st2205_init(Camera *camera)
 		return GP_ERROR_IO;
 	}
 
-	/* Some 240x320 models report a screen resolution of 320x240,
-	   but their file headers are for 240x320, swap. */
-	if (camera->pl->width == 320 && camera->pl->height == 240)
-	{
-		camera->pl->width = 240;
-		camera->pl->height = 320;
-	}
-
 	if (camera->pl->width == 240 && camera->pl->height == 320)
 		is240x320 = 1;
 
@@ -864,48 +851,40 @@ st2205_init(Camera *camera)
 	if (!camera->pl->mem)
 		return GP_ERROR_NO_MEMORY;
 
-	/* There are 3 known versions of st2205 devices / firmware:
-	 * Version 1 devices show up as a single disk. These have:
-	 * -4 copies of the "FAT"
-	 * -lookup tables directly followed by shuffle tables at 0x8477
-	 * -pictures starting at 0x10000
-	 * -64k of firmware at the end of memory
-	 * Version 2 devices show up as 2 disks, with the second second disk
-	 * containing a msdos filesystem with the windows software. These have:
-	 * -1 copy of the "FAT"
-	 * -lookup tables as part of the firmware at memory-end - 0x27b89 bytes
-	 * -pictures starting at 0x2000
-	 * -256k of firmware at the end of memory
-	 * Version 3 devices are identical to version 2 devices, except they
-	 * don't have the lookup / shuffle tables in a recognizable form.
-	 */
+	/* Get the lookup tables from the device */
+	for (i = 0; version_info[i].lookup_offset; i++) {
+		int lookup_offset = version_info[i].lookup_offset;
+		checksum = 0;
 
-	/* First check for V2/V3 devices by checking for a msdos filesystem
-	 * at memory-end - 0x20000 */
-	x = camera->pl->mem_size - 0x20000;
-	CHECK (st2205_check_block_present(camera, x / ST2205_BLOCK_SIZE))
-	if (!strcmp(camera->pl->mem + x, "\xeb\x3c\x90MSDOS5.0")) {
-		camera->pl->firmware_size = ST2205_V2_FIRMWARE_SIZE;
-		camera->pl->picture_start = ST2205_V2_PICTURE_START;
-		camera->pl->no_fats	  = 1;
-		GP_DEBUG ("Detected V2/V3 picframe");
-	} else {
-		/* Not a V2/V3 verify it is a V1 */
-		x = ST2205_V1_LOOKUP_OFFSET;
+		if ((lookup_offset + ST2205_LOOKUP_SIZE) >
+		    camera->pl->mem_size)
+			continue;
+
 		CHECK (st2205_check_block_present(camera,
-						  x / ST2205_BLOCK_SIZE))
-		if (memcmp(camera->pl->mem + x,
-			   "\xd0\xff\xcd\xff\xcb\xff\xcb\xff\xcb\xff\xcc\xff",
-			   12)) {
-			gp_log (GP_LOG_ERROR, "st2205",
-				"Could not determine picframe version");
-			return GP_ERROR_MODEL_NOT_FOUND;
+					lookup_offset / ST2205_BLOCK_SIZE))
+
+		lookup_src = (uint16_t *)(camera->pl->mem + lookup_offset);
+		dest = (uint16_t *)(&camera->pl->lookup[0][0][0]);
+		for (j = 0; j < 3 * 256 * 8; j++) {
+			*dest++ = le16toh(*lookup_src++);
+			checksum += (uint8_t)
+				(camera->pl->mem + lookup_offset)[j * 2];
+			checksum += (uint8_t)
+				(camera->pl->mem + lookup_offset)[j * 2 + 1];
 		}
-		camera->pl->firmware_size = ST2205_V1_FIRMWARE_SIZE;
-		camera->pl->picture_start = ST2205_V1_PICTURE_START;
-		camera->pl->no_fats	  = 4;
-		GP_DEBUG ("Detected V1 picframe");
+
+		if (checksum == ST2205_LOOKUP_CHECKSUM)
+			break;
 	}
+
+	if (!version_info[i].lookup_offset) {
+		gp_log (GP_LOG_ERROR, "st2205", "lookup tables not found");
+		return GP_ERROR_MODEL_NOT_FOUND;
+	}
+
+	camera->pl->firmware_size = version_info[i].firmware_size;
+	camera->pl->picture_start = version_info[i].picture_start;
+	camera->pl->no_fats	  = version_info[i].no_fats;
 
 	/* Generate shuffle tables 0 and 1 */
 	for (y = 0, i = 0; y < camera->pl->height; y += 8)
@@ -920,8 +899,11 @@ st2205_init(Camera *camera)
 			camera->pl->shuffle[1][i].y = y;
 		}
 
-	/* For the other tables, skip to the tables for the right resolution */
-	shuffle_src = st2205_shuffle_data;
+	/* Get the other shuffle tables from the device (they start directly
+	   after the chroma lookup table) */
+	shuffle_src = (uint8_t *)lookup_src;
+
+	/* Skip to the tables for the right resolution */
 	for (i = 0; shuffle_info[i].no_tables; i++) {
 		if (camera->pl->width	== shuffle_info[i].width &&
 				camera->pl->height == shuffle_info[i].height)
@@ -943,10 +925,20 @@ st2205_init(Camera *camera)
 	memcpy (camera->pl->unknown3, shuffle_info[i].unknown3,
 		sizeof(camera->pl->unknown3));
 	camera->pl->no_shuffles = shuffle_info[i].usable_tables;
+	expected_checksum = shuffle_info[i].checksum;
+	checksum = 0;
 	for (j = 2; j < camera->pl->no_shuffles; j++)
 		for (i = 0; i < shuffle_size; i++) {
 			camera->pl->shuffle[j][i].x = *shuffle_src++;
 			camera->pl->shuffle[j][i].y = *shuffle_src++;
+			if (camera->pl->shuffle[j][i].x >= camera->pl->width ||
+			    camera->pl->shuffle[j][i].y >= camera->pl->height){
+				gp_log (GP_LOG_ERROR, "st2205",
+				      "shuffle table coordinate out of range");
+				return GP_ERROR_CORRUPTED_DATA;
+			}
+			checksum += camera->pl->shuffle[j][i].x;
+			checksum += camera->pl->shuffle[j][i].y;
 			if (is240x320) {
 				camera->pl->shuffle[j][i].x *= 2;
 				camera->pl->shuffle[j][i].y *= 2;
@@ -965,6 +957,12 @@ st2205_init(Camera *camera)
 				i += 3;
 			}
 		}
+
+	if (checksum != expected_checksum) {
+		gp_log (GP_LOG_ERROR, "st2205",
+			"shuffle table checksum mismatch");
+		return GP_ERROR_MODEL_NOT_FOUND;
+	}
 
 	CHECK (st2205_check_fat_checksum (camera))
 

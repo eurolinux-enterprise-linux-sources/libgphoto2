@@ -1,6 +1,6 @@
 /*
  * Jenoptik JD11 Camera Driver
- * Copyright 1999-2001 Marcus Meissner <marcus@jet.franken.de>
+ * Copyright © 1999-2001 Marcus Meissner <marcus@jet.franken.de>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -23,6 +23,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "decomp.h"
 
@@ -147,8 +148,6 @@ picture_decomp_v1(unsigned char *compressed,unsigned char *uncompressed,int widt
 			*uncompressed++=xbyte;
 		}
 	}
-	free (lastline);
-	free (line);
 }
 
 /* Just blow up the picture from 6 bit uncompressed to 8 bit uncompressed */

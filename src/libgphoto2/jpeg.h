@@ -17,8 +17,8 @@
  * \note
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #ifndef __GPHOTO2_JPEG_H__
@@ -51,7 +51,7 @@ void gpi_jpeg_chunk_print(chunk *mychunk);
 
 char  gpi_jpeg_findff(int *location, chunk *picture);
 char  gpi_jpeg_findactivemarker(char *id, int *location, chunk *picture);
-char *gpi_jpeg_markername(unsigned int c);
+char *gpi_jpeg_markername(int c);
 
 jpeg *gpi_jpeg_new        (void);
 void  gpi_jpeg_destroy    (jpeg *myjpeg);
@@ -67,13 +67,13 @@ chunk *gpi_jpeg_make_SOFC    (int width, int height,
 chunk *gpi_jpeg_makeSsSeAhAl (int huffset1, int huffset2, int huffset3);
 
 void gpi_jpeg_print_quantization_table(jpeg_quantization_table *table);
-chunk *gpi_jpeg_make_quantization(const jpeg_quantization_table * table, char number);
+chunk *gpi_jpeg_make_quantization(jpeg_quantization_table *table, char number);
 jpeg_quantization_table *gpi_jpeg_quantization2table(chunk *qmarker);
 
 jpeg *gpi_jpeg_header(int width, int height,
     char vh1, char vh2, char vh3,
     char q1, char q2, char q3,
-    const jpeg_quantization_table *quant1, const jpeg_quantization_table *quant2,
+    jpeg_quantization_table *quant1, jpeg_quantization_table *quant2,
     char huffset1, char huffset2, char huffset3,
     chunk *huff1, chunk *huff2, chunk *huff3, chunk *huff4);
 

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# $Id$
+# $Id: urb-interpret 7941 2005-05-05 01:13:25Z swestin $
 #
 # This script is only of interest for developers who want to analyze
 # USB snoopy dumps of canon camera communication made with USB snoopy 1.8

@@ -63,26 +63,14 @@
 /* Define to 1 if you have the <ioctl-types.h> header file. */
 #undef HAVE_IOCTL_TYPES_H
 
-/* whether we compile with libexif support */
-#undef HAVE_LIBEXIF
-
-/* whether we use a version of libexif with ExifData.ifd[[]] */
-#undef HAVE_LIBEXIF_IFD
-
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
-
-/* Define to 1 if you have the `regex' library (-lregex). */
-#undef HAVE_LIBREGEX
 
 /* whether we compile with libusb support */
 #undef HAVE_LIBUSB
 
 /* whether we compile with libusb-1.0 support */
 #undef HAVE_LIBUSB1
-
-/* Define if libusb-1.0 has libusb_strerror */
-#undef HAVE_LIBUSB_STRERROR
 
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
@@ -92,6 +80,9 @@
 
 /* Whether libltdl (of libtool fame) is present */
 #undef HAVE_LTDL
+
+/* Define if you have Bonjour/mDNSResponder. */
+#undef HAVE_MDNS_BONJOUR
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -206,10 +197,8 @@
 /* Define as const if the declaration of iconv() needs const. */
 #undef ICONV_CONST
 
-/* Define as string containing a list of the iolibs */
-#undef IOLIB_LIST
-
-/* Define to the sub-directory where libtool stores uninstalled libraries. */
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
 #undef LT_OBJDIR
 
 /* gphoto development mailing list */
@@ -220,6 +209,9 @@
 
 /* gphoto user mailing list */
 #undef MAIL_GPHOTO_USER
+
+/* Define to 1 if your C compiler doesn't accept -c and -o together. */
+#undef NO_MINUS_C_MINUS_O
 
 /* Name of package */
 #undef PACKAGE
@@ -251,7 +243,7 @@
 /* gphoto project home page */
 #undef URL_GPHOTO_HOME
 
-/* gphoto github project page */
+/* gphoto sourceforge project page */
 #undef URL_GPHOTO_PROJECT
 
 /* jphoto home page */

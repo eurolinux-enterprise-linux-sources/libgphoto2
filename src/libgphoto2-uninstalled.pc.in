@@ -10,15 +10,13 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 VERSION=@VERSION@
-abs_top_builddir=@abs_top_builddir@
-driverdir=${abs_top_builddir}/camlibs
+driverdir=@camlibdir@
 
 Name: libgphoto2
 Description: Library for easy access to digital cameras
 URL: http://gphoto.org/proj/libgphoto2/
 Version: ${VERSION}
-Requires: libgphoto2_port >= 0.7.2
-Requires.private: @REQUIREMENTS_FOR_LIBEXIF@
+Requires: libgphoto2_port >= 0.7.2, @REQUIREMENTS_FOR_LIBEXIF@
 # This is what works for gphoto-suite
 Libs: ${pcfiledir}/libgphoto2/libgphoto2.la -lm
 Cflags: -I${pcfiledir}/@srcdir@

@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += digigr8/README.905C
 EXTRA_DIST += digigr8/README.9050
 EXTRA_DIST += digigr8/README.9051

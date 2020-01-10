@@ -1,6 +1,6 @@
 /**********************************************************************
 *       Minolta Dimage V digital camera communication library         *
-*               Copyright 2000,2001 Gus Hartmann                      *
+*               Copyright © 2000,2001 Gus Hartmann                  *
 *                                                                     *
 *    This program is free software; you can redistribute it and/or    *
 *    modify it under the terms of the GNU General Public License as   *
@@ -13,13 +13,13 @@
 *    GNU General Public License for more details.                     *
 *                                                                     *
 *    You should have received a copy of the GNU General Public        *
-*    License along with this program; if not, write to the *
-*    Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-*    Boston, MA  02110-1301  USA
+*    License along with this program; if not, write to the Free       *
+*    Software Foundation, Inc., 59 Temple Place, Suite 330,           *
+*    Boston, MA 02111-1307 USA                                        *
 *                                                                     *
 **********************************************************************/
 
-/* $Id$ */
+/* $Id: delete.c 5969 2002-12-15 11:45:10Z asl $ */
 
 #include "config.h"
 
@@ -29,8 +29,7 @@
 
 int dimagev_delete_picture(dimagev_t *dimagev, int file_number) {
 	dimagev_packet *p, *raw;
-	unsigned char command_buffer[3];
-	char char_buffer = 0;
+	unsigned char char_buffer=0, command_buffer[3];
 
 	if ( dimagev == NULL ) {
 		GP_DEBUG( "dimagev_delete_picture::unable to use NULL dimagev_t");
@@ -64,7 +63,7 @@ int dimagev_delete_picture(dimagev_t *dimagev, int file_number) {
 		return GP_ERROR_NO_MEMORY;
 	}
 
-	if ( gp_port_write(dimagev->dev, (char *)p->buffer, p->length) < GP_OK ) {
+	if ( gp_port_write(dimagev->dev, p->buffer, p->length) < GP_OK ) {
 		GP_DEBUG( "dimagev_delete_picture::unable to send set_data packet");
 		free(p);
 		return GP_ERROR_IO;
@@ -109,16 +108,17 @@ int dimagev_delete_picture(dimagev_t *dimagev, int file_number) {
 		free(raw);
 		return GP_ERROR_NO_MEMORY;
 	}
-	free(raw);
 
 	char_buffer=DIMAGEV_EOT;
 	if ( gp_port_write(dimagev->dev, &char_buffer, 1) < GP_OK ) {
 		GP_DEBUG( "dimagev_delete_picture::unable to send ACK");
+		free(raw);
 		return GP_ERROR_IO;
 	}
 
 	if ( gp_port_read(dimagev->dev, &char_buffer, 1) < GP_OK ) {
 		GP_DEBUG( "dimagev_delete_picture::no response from camera");
+		free(raw);
 		return GP_ERROR_IO;
 	}
 		
@@ -127,12 +127,15 @@ int dimagev_delete_picture(dimagev_t *dimagev, int file_number) {
 			break;
 		case DIMAGEV_NAK:
 			GP_DEBUG( "dimagev_delete_picture::camera did not acknowledge transmission");
+			free(raw);
 			return GP_ERROR_IO;
 		case DIMAGEV_CAN:
 			GP_DEBUG( "dimagev_delete_picture::camera cancels transmission");
+			free(raw);
 			return GP_ERROR_IO;
 		default:
 			GP_DEBUG( "dimagev_delete_picture::camera responded with unknown value %x", char_buffer);
+			free(raw);
 			return GP_ERROR_IO;
 	}
 
@@ -141,8 +144,7 @@ int dimagev_delete_picture(dimagev_t *dimagev, int file_number) {
 
 int dimagev_delete_all(dimagev_t *dimagev) {
 	dimagev_packet *p, *raw;
-	unsigned char command_buffer[3];
-	char char_buffer;
+	unsigned char char_buffer, command_buffer[3];
 
 	if ( dimagev == NULL ) {
 		GP_DEBUG( "dimagev_delete_all::unable to use NULL dimagev_t");
@@ -174,7 +176,7 @@ int dimagev_delete_all(dimagev_t *dimagev) {
 		return GP_ERROR_IO;
 	}
 
-	if ( gp_port_write(dimagev->dev, (char *)p->buffer, p->length) < GP_OK ) {
+	if ( gp_port_write(dimagev->dev, p->buffer, p->length) < GP_OK ) {
 		GP_DEBUG( "dimagev_delete_all::unable to send set_data packet");
 		free(p);
 		return GP_ERROR_IO;
@@ -219,16 +221,17 @@ int dimagev_delete_all(dimagev_t *dimagev) {
 		free(raw);
 		return GP_ERROR;
 	}
-	free(raw);
 
 	char_buffer=DIMAGEV_EOT;
 	if ( gp_port_write(dimagev->dev, &char_buffer, 1) < GP_OK ) {
 		GP_DEBUG( "dimagev_delete_all::unable to send ACK");
+		free(raw);
 		return GP_ERROR_IO;
 	}
 
 	if ( gp_port_read(dimagev->dev, &char_buffer, 1) < GP_OK ) {
 		GP_DEBUG( "dimagev_delete_all::no response from camera");
+		free(raw);
 		return GP_ERROR_IO;
 	}
 		
@@ -237,12 +240,15 @@ int dimagev_delete_all(dimagev_t *dimagev) {
 			break;
 		case DIMAGEV_NAK:
 			GP_DEBUG( "dimagev_delete_all::camera did not acknowledge transmission");
+			free(raw);
 			return GP_ERROR_IO;
 		case DIMAGEV_CAN:
 			GP_DEBUG( "dimagev_delete_all::camera cancels transmission");
+			free(raw);
 			return GP_ERROR_IO;
 		default:
 			GP_DEBUG( "dimagev_delete_all::camera responded with unknown value %x", char_buffer);
+			free(raw);
 			return GP_ERROR_IO;
 	}
 

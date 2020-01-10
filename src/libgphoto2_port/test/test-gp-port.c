@@ -1,6 +1,6 @@
 /* test-gp-port.c
  *
- * Copyright 2002 Lutz Mueller <lutz@users.sourceforge.net>
+ * Copyright © 2002 Lutz Müller <lutz@users.sourceforge.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 #include "config.h"
 
@@ -46,28 +46,6 @@ main (int argc, char **argv)
 	GPPortInfo info;
 	GPLevel level;
 	unsigned int i;
-	int id1,id2,id3;
-
-	/* test https://github.com/gphoto/libgphoto2/issues/45 */
-	id1 = gp_log_add_func (GP_LOG_DATA, log_func, NULL);
-	id2 = gp_log_add_func (GP_LOG_DATA, log_func, NULL);
-	if (GP_OK != gp_log_remove_func (id1)) {
-		printf ("id1 not found?\n");
-		return 1;
-	}
-	id3 = gp_log_add_func (GP_LOG_DATA, log_func, NULL);
-	if (GP_OK != gp_log_remove_func (id2)) {
-		printf ("id2 not found?\n");
-		return 1;
-	}
-	if (GP_OK != gp_log_remove_func (id3)) {
-		printf ("id3 not found?\n");
-		return 1;
-	}
-	if (GP_ERROR_BAD_PARAMETERS != gp_log_remove_func (id3)) {
-		printf ("id3 was found?\n");
-		return 1;
-	}
 
 	gp_log_add_func (GP_LOG_DATA, log_func, NULL);
 

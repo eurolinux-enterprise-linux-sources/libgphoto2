@@ -12,6 +12,7 @@
  * and condensed into simple capture sample
  */
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -77,19 +78,19 @@ capture_to_file(Camera *camera, GPContext *context, char *fn) {
 
 	printf("Pathname on the camera: %s/%s\n", camera_file_path.folder, camera_file_path.name);
 
-	fd = open(fn, O_CREAT | O_WRONLY | O_BINARY, 0644);
+	fd = open(fn, O_CREAT | O_WRONLY, 0644);
 	retval = gp_file_new_from_fd(&file, fd);
 	printf("  Retval: %d\n", retval);
 	retval = gp_camera_file_get(camera, camera_file_path.folder, camera_file_path.name,
 		     GP_FILE_TYPE_NORMAL, file, context);
 	printf("  Retval: %d\n", retval);
 
-	gp_file_free(file);
-
 	printf("Deleting.\n");
 	retval = gp_camera_file_delete(camera, camera_file_path.folder, camera_file_path.name,
 			context);
 	printf("  Retval: %d\n", retval);
+
+	gp_file_free(file);
 }
 
 int

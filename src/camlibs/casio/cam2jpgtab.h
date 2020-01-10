@@ -22,7 +22,7 @@ Original copyright notice of this file:
 Casio QV-10 cam file converter.
 Jun-ichiro "itojun" Itoh. <itojun@mt.cs.keio.ac.jp> <itojun@csl.sony.co.jp>
 Freely redistributable.
-$Id$
+$Id: cam2jpgtab.h 10850 2007-11-09 12:40:38Z marcusmeissner $
 
 */
 

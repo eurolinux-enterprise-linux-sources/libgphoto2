@@ -17,11 +17,11 @@
  * \par
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
-#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
 
 #include "config.h"
 #include <gphoto2/gphoto2-setting.h>
@@ -29,14 +29,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <gphoto2/gphoto2-result.h>
 #include <gphoto2/gphoto2-port-log.h>
 #include <gphoto2/gphoto2-port-portability.h>
 
-#ifdef WIN32
-#include <Shlobj.h>
-#endif
+#define GP_MODULE "setting"
 
 /**
  * Internal struct to store settings.
@@ -54,6 +53,7 @@ static Setting         glob_setting[512];
 
 static int save_settings (void);
 
+#define CHECK_NULL(r)              {if (!(r)) return (GP_ERROR_BAD_PARAMETERS);}
 #define CHECK_RESULT(result)       {int r = (result); if (r < 0) return (r);}
 
 static int load_settings (void);
@@ -62,7 +62,7 @@ static int load_settings (void);
  * \brief Retrieve a specific gphoto setting.
  * \param id the frontend id of the caller
  * \param key the key the frontend queries
- * \param value changed value
+ * \param value retrieved value
  * \return GPhoto error code
  *
  * This function retrieves the setting key for a specific frontend
@@ -73,7 +73,7 @@ gp_setting_get (char *id, char *key, char *value)
 {
         int x;
 
-	C_PARAMS (id && key);
+	CHECK_NULL (id && key);
 
 	if (!glob_setting_count)
 		load_settings ();
@@ -94,7 +94,7 @@ gp_setting_get (char *id, char *key, char *value)
  *
  * \param id the frontend id of the caller
  * \param key the key the frontend queries
- * \param value new value
+ * \param value retrieved value
  * \return GPhoto error code
  *
  * This function sets the setting key for a specific frontend
@@ -105,12 +105,13 @@ gp_setting_set (char *id, char *key, char *value)
 {
         int x;
 
-	C_PARAMS (id && key);
+	CHECK_NULL (id && key);
 
 	if (!glob_setting_count)
 		load_settings ();
 
-	GP_LOG_D ("Setting key '%s' to value '%s' (%s)", key, value, id);
+	gp_log (GP_LOG_DEBUG, "gphoto2-setting",
+		"Setting key '%s' to value '%s' (%s)", key, value, id);
 
         for (x=0; x<glob_setting_count; x++) {
                 if ((strcmp(glob_setting[x].id, id)==0) &&
@@ -133,10 +134,10 @@ verify_settings (char *settings_file)
 {
 	FILE *f;
 	char buf[1024];
-	unsigned int x, equals;
+	int x, equals;
 
 	if ((f=fopen(settings_file, "r"))==NULL) {
-		GP_LOG_D ("Can't open settings file '%s' for reading.", settings_file);
+		GP_DEBUG ("Can't open settings file for reading");
 		return(0);
 	}
 
@@ -154,7 +155,7 @@ verify_settings (char *settings_file)
 
 			if (equals < 2) {
 				fclose (f);
-				GP_LOG_E ("Incorrect settings format. Resetting.");
+				GP_DEBUG ("Incorrect settings format. resetting\n");
 				unlink(settings_file);
 				return (GP_ERROR);
 			}
@@ -172,19 +173,19 @@ load_settings (void)
 	char buf[1024], *id, *key, *value;
 
 	/* Make sure the directories are created */
+	GP_DEBUG ("Creating $HOME/.gphoto");
 #ifdef WIN32
-	SHGetFolderPath(NULL, CSIDL_PROFILE, NULL, 0, buf);
-	strcat (buf, "\\.gphoto");
+	GetWindowsDirectory (buf, sizeof(buf));
+	strcat (buf, "\\gphoto");
 #else
 	snprintf (buf, sizeof(buf), "%s/.gphoto", getenv ("HOME"));
 #endif
-	GP_LOG_D ("Creating gphoto config directory ('%s')", buf);
 	(void)gp_system_mkdir (buf);
 
 	glob_setting_count = 0;
 #ifdef WIN32
-	SHGetFolderPath(NULL, CSIDL_PROFILE, NULL, 0, buf);
-	strcat(buf, "\\.gphoto\\settings");
+	GetWindowsDirectory(buf, sizeof(buf));
+	strcat(buf, "\\gphoto\\settings");
 #else
 	snprintf(buf, sizeof(buf), "%s/.gphoto/settings", getenv("HOME"));
 #endif
@@ -192,10 +193,10 @@ load_settings (void)
 	if (verify_settings(buf) != GP_OK)
 		/* verify_settings will unlink and recreate the settings file */
 		return (GP_OK);
-	GP_LOG_D ("Loading settings from file '%s'.", buf);
+	GP_DEBUG ("Loading settings from file \"%s\"", buf);
 
 	if ((f=fopen(buf, "r"))==NULL) {
-		GP_LOG_D ("Can't open settings file '%s' for reading.", buf);
+		GP_DEBUG ("Can't open settings for reading");
 		return(GP_ERROR);
 	}
 
@@ -229,18 +230,14 @@ save_settings (void)
 	char buf[1024];
 	int x=0;
 
-#ifdef WIN32
-	SHGetFolderPath(NULL, CSIDL_PROFILE, NULL, 0, buf);
-	strcat(buf, "\\.gphoto\\settings");
-#else
 	snprintf (buf, sizeof(buf), "%s/.gphoto/settings", getenv ("HOME"));
-#endif
 
-
-	GP_LOG_D ("Saving %i setting(s) to file \"%s\"", glob_setting_count, buf);
+	gp_log (GP_LOG_DEBUG, "gphoto2-setting",
+		"Saving %i setting(s) to file \"%s\"",
+		glob_setting_count, buf);
 
 	if ((f=fopen(buf, "w+"))==NULL) {
-		GP_LOG_E ("Can't open settings file for writing.");
+		GP_DEBUG ("Can't open settings file for writing");
 		return(0);
 	}
 	rewind(f);

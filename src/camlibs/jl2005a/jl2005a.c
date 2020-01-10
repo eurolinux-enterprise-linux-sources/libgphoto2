@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include <config.h>
@@ -120,12 +120,13 @@ int
 jl2005a_read_picture_data (Camera *camera, GPPort *port, 
 					unsigned char *data, unsigned int size) 
 {
+        char response;
 	unsigned char *to_read;
 	int maxdl = 0xfa00;
 	to_read=data;
-	jl2005a_read_info_byte(port, 7);
+	response = (jl2005a_read_info_byte(port, 7) )&0xff;
 	/* Always 0x80. Purpose unknown */
-	jl2005a_read_info_byte(port, 0x0a);
+	response = (jl2005a_read_info_byte(port, 0x0a) )&0xff;
 	/* Previous byte is 0x11 if what is to be downloaded is the first
 	 * frame in a clip, is 0x01 if it is any clip frame after the initial
 	 * one, and is zero if what is to be downloaded is a standalone photo.

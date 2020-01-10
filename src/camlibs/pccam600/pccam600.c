@@ -22,8 +22,8 @@
 /*                                                              */
 /* You should have received a copy of the GNU Library General   */
 /* Public License along with this library; if not, write to the */
-/* Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,*/
-/* Boston, MA  02110-1301  USA					*/
+/* Free Software Foundation, Inc., 59 Temple Place - Suite 330, */
+/* Boston, MA 02111-1307, USA.                                  */
 /****************************************************************/
 
 #include "config.h"
@@ -56,23 +56,23 @@
  *waits until the status value is 0 or 8. 
  *if status == 0xb0 or 0x40 we will wait some more
  */
-static int pccam600_wait_for_status(GPPort *port){
+static void pccam600_wait_for_status(GPPort *port){
+  int ret;
   unsigned char status = 1;
   while(status != 0x00){
     gp_port_set_timeout(port,3000);
-    CHECK(gp_port_usb_msg_read(port,0x06,0x00,0x00,(char*)&status,1));
+    ret = gp_port_usb_msg_read(port,0x06,0x00,0x00,(char*)&status,1);
     if (status == 0 || status == 8)
-      return GP_OK;
+      return;
     if (status == 0xb0){
       gp_port_set_timeout(port,200000);
-      CHECK(gp_port_usb_msg_read(port,0x06,0x00,0x00,(char*)&status,1));
+      ret = gp_port_usb_msg_read(port,0x06,0x00,0x00,(char*)&status,1);
     }
     if (status == 0x40){
       gp_port_set_timeout(port,400000);
-      CHECK(gp_port_usb_msg_read(port,0x06,0x00,0x00,(char*)&status,1));
+      ret = gp_port_usb_msg_read(port,0x06,0x00,0x00,(char*)&status,1);
     }
   }
-  return GP_ERROR;
 }
 
 /*
@@ -80,15 +80,16 @@ static int pccam600_wait_for_status(GPPort *port){
  */
 int pccam600_delete_file(GPPort *port, GPContext *context, int index){
   unsigned char response[4];
+  int ret;
   index = index + 2;
   gp_port_set_timeout(port,200000);
-  CHECK(gp_port_usb_msg_write(port,0x09,index,0x1001,NULL,0x00));
-  CHECK(pccam600_wait_for_status(port));
+  ret = gp_port_usb_msg_write(port,0x09,index,0x1001,NULL,0x00);
+  pccam600_wait_for_status(port);
   gp_port_set_timeout(port, 400000);
-  CHECK(gp_port_usb_msg_read(port,0x60,0x00,0x03,(char*)response,0x04));
-  CHECK(pccam600_wait_for_status(port));
-  CHECK(gp_port_usb_msg_read(port,0x60,0x00,0x04,(char*)response,0x04));
-  CHECK(pccam600_wait_for_status(port));
+  ret = gp_port_usb_msg_read(port,0x60,0x00,0x03,(char*)response,0x04);
+  pccam600_wait_for_status(port);
+  ret = gp_port_usb_msg_read(port,0x60,0x00,0x04,(char*)response,0x04);
+  pccam600_wait_for_status(port);
   return GP_OK;
 }
 
@@ -96,13 +97,14 @@ int pccam600_get_mem_info(GPPort *port, GPContext *context, int *totalmem,
 			    int *freemem)
 {
   unsigned char response[4];
+  int ret;
   gp_port_set_timeout(port, 400000);
-  CHECK(gp_port_usb_msg_read(port,0x60,0x00,0x03,(char*)response,0x04)); 
+  ret = gp_port_usb_msg_read(port,0x60,0x00,0x03,(char*)response,0x04);  
   *totalmem = response[2]*65536+response[1]*256+response[0];
-  CHECK(pccam600_wait_for_status(port));
-  CHECK(gp_port_usb_msg_read(port,0x60,0x00,0x04,(char*)response,0x04));
+  pccam600_wait_for_status(port);
+  ret = gp_port_usb_msg_read(port,0x60,0x00,0x04,(char*)response,0x04);
   *freemem = response[2]*65536+response[1]*256+response[0];
-  CHECK(pccam600_wait_for_status(port));
+  pccam600_wait_for_status(port);
   return GP_OK;
 }
 
@@ -111,14 +113,14 @@ int pccam600_get_mem_info(GPPort *port, GPContext *context, int *totalmem,
  */
 int pccam600_get_file_list(GPPort *port, GPContext *context){
   unsigned char response[4];
-  int nr_of_blocks;
+  int ret, nr_of_blocks;
   gp_port_set_timeout(port,500);
-  CHECK(gp_port_usb_msg_write(port,0x08,0x00,0x1021,NULL,0x00));
-  CHECK(pccam600_wait_for_status(port));
+  ret = gp_port_usb_msg_write(port,0x08,0x00,0x1021,NULL,0x00);
+  pccam600_wait_for_status(port);
   gp_port_set_timeout(port, 200000);
-  CHECK(gp_port_usb_msg_write(port,0x08,0x00,0x1021,NULL,0x00));
-  CHECK(pccam600_wait_for_status(port));
-  CHECK(gp_port_usb_msg_read(port,0x08,0x00,0x1000,(char*)response,0x04));
+  ret = gp_port_usb_msg_write(port,0x08,0x00,0x1021,NULL,0x00);
+  pccam600_wait_for_status(port);
+  ret = gp_port_usb_msg_read(port,0x08,0x00,0x1000,(char*)response,0x04);
   nr_of_blocks = response[2]*256+response[1];
   if (nr_of_blocks == 0){
     gp_log(GP_LOG_DEBUG,"pccam600 library: pccam600_get_file_list",
@@ -132,7 +134,7 @@ int pccam600_get_file_list(GPPort *port, GPContext *context){
 
 int pccam600_get_file(GPPort *port, GPContext *context, int index){
   unsigned char response[4];
-  int nr_of_blocks;
+  int ret,nr_of_blocks;
   index = index + 2;
   if (index < 2)  {
     gp_context_error(context,
@@ -141,13 +143,13 @@ int pccam600_get_file(GPPort *port, GPContext *context, int index){
     return GP_ERROR;
   }
   gp_port_set_timeout(port,200000);
-  CHECK(gp_port_usb_msg_read(port,0x08,index,0x1001,(char*)response,0x04));
+  ret = gp_port_usb_msg_read(port,0x08,index,0x1001,(char*)response,0x04);
   gp_port_set_timeout(port,3000);
-  CHECK(gp_port_usb_msg_write(port,0x04,0x00,0x00,NULL,0x00));
-  CHECK(pccam600_wait_for_status(port));
+  ret = gp_port_usb_msg_write(port,0x04,0x00,0x00,NULL,0x00);
+  pccam600_wait_for_status(port);
   gp_port_set_timeout(port,200000);
-  CHECK(gp_port_usb_msg_read(port,0x08,index,0x1002,(char*)response,0x04));
-  CHECK(gp_port_usb_msg_read(port,0x08,index,0x1001,(char*)response,0x04));
+  ret = gp_port_usb_msg_read(port,0x08,index,0x1002,(char*)response,0x04);
+  ret = gp_port_usb_msg_read(port,0x08,index,0x1001,(char*)response,0x04);
   nr_of_blocks = response[2]*256+response[1];
   if (nr_of_blocks == 0){
     gp_log(GP_LOG_DEBUG,
@@ -163,8 +165,9 @@ int pccam600_get_file(GPPort *port, GPContext *context, int index){
  *Reads bulk data from the camera in 512bytes chunks.
  */
 int pccam600_read_data(GPPort *port, unsigned char *buffer){
+  int ret;
   gp_port_set_timeout(port,500);
-  CHECK(gp_port_read(port,(char*)buffer,512));
+  ret = gp_port_read(port,(char*)buffer,512);
   return GP_OK;
 }
 
@@ -181,7 +184,7 @@ int pccam600_close(GPPort *port, GPContext *context){
 		 ret,0);
     return GP_ERROR;
   }
-  CHECK(pccam600_wait_for_status(port));
+  pccam600_wait_for_status(port);
   return GP_OK;
 }
 
@@ -196,16 +199,17 @@ int pccam600_init(GPPort *port, GPContext *context){
   int nr_of_blocks;
   int ret,i;
   gp_port_set_timeout(port,100);
-  CHECK(gp_port_usb_msg_write(port,0x0e,0x00,0x01,NULL,0x0));
-  CHECK(gp_port_usb_msg_write(port,0x08,0x00,0xff,NULL,0x0));
-  CHECK(pccam600_wait_for_status(port));
+  ret = gp_port_usb_msg_write(port,0x0e,0x00,0x01,NULL,0x0);
+  ret = gp_port_usb_msg_write(port,0x08,0x00,0xff,NULL,0x0);
+  pccam600_wait_for_status(port);
+  if (ret <0) return ret;
   gp_port_set_timeout(port,100000);
-  CHECK(gp_port_usb_msg_read(port,0x08,0x00,0xff,(char*)response,0x1));
+  ret = gp_port_usb_msg_read(port,0x08,0x00,0xff,(char*)response,0x1);
   gp_port_set_timeout(port,500);
-  CHECK(gp_port_usb_msg_write(port,0x08,0x00,0x1020,NULL,0x0));
-  CHECK(pccam600_wait_for_status(port));
+  ret = gp_port_usb_msg_write(port,0x08,0x00,0x1020,NULL,0x0);
+  pccam600_wait_for_status(port);
   gp_port_set_timeout(port,200000);
-  CHECK(gp_port_usb_msg_read(port,0x08,0x00,0x1000,(char*)response,0x4));
+  ret = gp_port_usb_msg_read(port,0x08,0x00,0x1000,(char*)response,0x4);
   nr_of_blocks = response[2]*256+response[1];
   nr_of_blocks = 512 / nr_of_blocks;
   gp_log(GP_LOG_DEBUG,"pccam600 library: init","nr_of_blocks %d",nr_of_blocks);

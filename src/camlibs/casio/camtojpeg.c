@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -42,11 +42,13 @@ static unsigned int u32(const unsigned char *buf)
 
 int QVcamtojpeg(const unsigned char *cam, long int camSize, unsigned char **jpeg, long int *jpegSize)
 {
+  int areaNum;
   int ysize;
   int usize;
   int vsize;
   unsigned char *dst;
 
+  areaNum =  u16(cam);	/* areaNum == 0x03 */
   ysize = u16(cam + 2);
   usize = u16(cam + 4);
   vsize = u16(cam + 6);

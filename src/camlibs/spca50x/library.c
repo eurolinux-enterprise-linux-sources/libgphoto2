@@ -19,8 +19,8 @@
 /*                                                              */
 /* You should have received a copy of the GNU Library General   */
 /* Public License along with this library; if not, write to the */
-/* Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,*/
-/* Boston, MA  02110-1301  USA					*/
+/* Free Software Foundation, Inc., 59 Temple Place - Suite 330, */
+/* Boston, MA 02111-1307, USA.                                  */
 /****************************************************************/
 #define _BSD_SOURCE
 
@@ -192,7 +192,7 @@ camera_capture (Camera *camera, CameraCaptureType type,
 
 	/* Not all our cameras support capture */
 	gp_camera_get_abilities (camera, &a);
-	if (!(a.operations & GP_OPERATION_CAPTURE_IMAGE))
+	if (!a.operations & GP_OPERATION_CAPTURE_IMAGE)
 		return GP_ERROR_NOT_SUPPORTED;
 
 	if (cam_has_flash(camera->pl))
@@ -348,8 +348,7 @@ get_file_func (CameraFilesystem *fs, const char *folder,
 
 	Camera *camera = user_data;
 	unsigned char *data = NULL;
-	int number, filetype, flash_file_count = 0;
-	unsigned int size;
+	int size, number, filetype, flash_file_count = 0;
 
 	CHECK (number =
 	       gp_filesystem_number (camera->fs, folder, filename, context));
@@ -410,7 +409,7 @@ get_file_func (CameraFilesystem *fs, const char *folder,
 	}
 	if (!data)
 		return GP_ERROR;
-	return gp_file_set_data_and_size (file, (char *)data, size);
+	return gp_file_set_data_and_size (file, data, size);
 }
 
 static int

@@ -1,8 +1,8 @@
 /** \file template.c
  * \brief Documented source code template for a camera driver (camlib).
  *
- * \author Copyright 2001 Lutz Mueller <lutz@users.sourceforge.net>
- * \author Copyright 2005 Hans Ulrich Niedermann <gp@n-dimensional.de>
+ * \author Copyright © 2001 Lutz Müller <lutz@users.sourceforge.net>
+ * \author Copyright © 2005 Hans Ulrich Niedermann <gp@n-dimensional.de>
  *
  * \par
  * This library is free software; you can redistribute it and/or
@@ -19,8 +19,8 @@
  * \par
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  *
  * \section intro Introduction to camera drivers (camlibs)
  *

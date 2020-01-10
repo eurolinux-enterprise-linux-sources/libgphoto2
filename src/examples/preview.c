@@ -10,6 +10,7 @@
  * Taken from: http://credentiality2.blogspot.com/2008/07/linux-libgphoto2-image-capture-from.html 
  */
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -23,7 +24,7 @@
 
 static void errordumper(GPLogLevel level, const char *domain, const char *str,
                  void *data) {
-  printf("%s (data %p)\n", str,data);
+  printf("%s\n", str);
 }
 
 /* This seems to have no effect on where images go
@@ -86,7 +87,6 @@ void set_capturetarget(Camera *canon, GPContext *canoncontext) {
 }
 */
 
-#if 0
 static void
 capture_to_file(Camera *canon, GPContext *canoncontext, char *fn) {
 	int fd, retval;
@@ -100,7 +100,7 @@ capture_to_file(Camera *canon, GPContext *canoncontext, char *fn) {
 
 	printf("Pathname on the camera: %s/%s\n", camera_file_path.folder, camera_file_path.name);
 
-	fd = open(fn, O_CREAT | O_WRONLY | O_BINARY, 0644);
+	fd = open(fn, O_CREAT | O_WRONLY, 0644);
 	retval = gp_file_new_from_fd(&canonfile, fd);
 	printf("  Retval: %d\n", retval);
 	retval = gp_camera_file_get(canon, camera_file_path.folder, camera_file_path.name,
@@ -114,7 +114,6 @@ capture_to_file(Camera *canon, GPContext *canoncontext, char *fn) {
 
 	gp_file_free(canonfile);
 }
-#endif
 
 int
 main(int argc, char **argv) {
@@ -122,7 +121,7 @@ main(int argc, char **argv) {
 	int	i, retval;
 	GPContext *canoncontext = sample_create_context();
 
-	gp_log_add_func(GP_LOG_ERROR, errordumper, 0);
+	gp_log_add_func(GP_LOG_ERROR, errordumper, NULL);
 	gp_camera_new(&canon);
 
 	/* When I set GP_LOG_DEBUG instead of GP_LOG_ERROR above, I noticed that the
@@ -137,11 +136,6 @@ main(int argc, char **argv) {
 		exit (1);
 	}
 	canon_enable_capture(canon, TRUE, canoncontext);
-	retval = camera_eosviewfinder(canon,canoncontext,1);
-	if (retval != GP_OK) {
-		fprintf(stderr,"camera_eosviewfinder(1): %d\n", retval);
-		exit(1);
-	}
 	/*set_capturetarget(canon, canoncontext);*/
 	printf("Taking 100 previews and saving them to snapshot-XXX.jpg ...\n");
 	for (i=0;i<100;i++) {
@@ -157,9 +151,7 @@ main(int argc, char **argv) {
 
 		/* autofocus every 10 shots */
 		if (i%10 == 9) {
-			camera_auto_focus (canon, canoncontext, 1);
-			/* FIXME: wait a bit and/or poll events ? */
-			camera_auto_focus (canon, canoncontext, 0);
+			camera_auto_focus (canon, canoncontext);
 		} else {
 			camera_manual_focus (canon, (i/10-5)/2, canoncontext);
 		}
@@ -189,13 +181,6 @@ main(int argc, char **argv) {
 	        capture_to_file(canon, canoncontext, output_file);
 	*/
 	}
-	retval = camera_eosviewfinder(canon,canoncontext,0);
-	if (retval != GP_OK) {
-		fprintf(stderr,"camera_eosviewfinder(0): %d\n", retval);
-		exit(1);
-	}
-
-	sleep(10);
 	gp_camera_exit(canon, canoncontext);
 	return 0;
 }

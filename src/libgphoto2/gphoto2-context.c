@@ -1,6 +1,6 @@
 /** \file gphoto2-context.c
  *
- * \author Copyright 2001 Lutz Mueller <lutz@users.sourceforge.net>
+ * \author Copyright 2001 Lutz Müller <lutz@users.sourceforge.net>
  *
  * \par License
  * This library is free software; you can redistribute it and/or
@@ -17,8 +17,8 @@
  * \par
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -75,9 +75,10 @@ gp_context_new (void)
 {
 	GPContext *context;
 
-	context = calloc (1, sizeof (GPContext));
+	context = malloc (sizeof (GPContext));
 	if (!context)
 		return (NULL);
+	memset (context, 0, sizeof (GPContext));
 
 	context->ref_count = 1;
 
@@ -101,6 +102,9 @@ gp_context_ref (GPContext *context)
 static void
 gp_context_free (GPContext *context)
 {
+	if (!context)
+		return;
+
 	free (context);
 }
 
@@ -156,20 +160,50 @@ gp_context_progress_start (GPContext *context, float target,
 			   const char *format, ...)
 {
 	va_list args;
-	char *str;
 	unsigned int id;
+#ifdef HAVE_VA_COPY
+	va_list xargs;
+#else
+#define xargs args
+#endif
+	int strsize = 1000;
+	char *str;
+	int n;
 
 	if (!context)
 		return (0);
 	if (!context->progress_start_func)
 		return (0);
 
-	va_start (args, format);
-	str = gpi_vsnprintf(format, args);
-	va_end (args);
-
-	if (!str)
+	str = malloc(strsize);
+	if (!str) {
 		return 0;
+	}
+	va_start (args, format);
+#ifdef HAVE_VA_COPY
+	va_copy (xargs, args);
+#endif
+	n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+	va_end (xargs);
+#endif
+	if (n+1>strsize) {
+		free (str);
+		str = malloc(n+1);
+		if (!str) { 
+			va_end (args);
+			return 0;
+		}
+		strsize = n+1;
+#ifdef HAVE_VA_COPY
+		va_copy (xargs, args);
+#endif
+		n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+		va_end (xargs);
+#endif
+	}
+	va_end (args);
 
 	id = context->progress_start_func (context, target, str,
 				context->progress_func_data);
@@ -203,17 +237,45 @@ void
 gp_context_error (GPContext *context, const char *format, ...)
 {
 	va_list args;
+#ifdef HAVE_VA_COPY
+	va_list xargs;
+#endif
+	int strsize = 1000;
 	char *str;
+	int n;
 
+	str = malloc(strsize);
+	if (!str) {
+		return;
+	}
 	va_start (args, format);
-	str = gpi_vsnprintf(format, args);
+#ifdef HAVE_VA_COPY
+	va_copy (xargs, args);
+#endif
+	n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+	va_end (xargs);
+#endif
+	if (n+1>strsize) {
+		free (str);
+		str = malloc(n+1);
+		if (!str) { 
+			va_end (args);
+			return;
+		}
+		strsize = n+1;
+#ifdef HAVE_VA_COPY
+		va_copy (xargs, args);
+#endif
+		n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+		va_end (xargs);
+#endif
+	}
 	va_end (args);
 
-	if (!str)
-		return;
-
 	/* Log the error message */
-	gp_log( GP_LOG_ERROR, __func__, "%s", str);
+	gp_log (GP_LOG_ERROR, "context", "%s", str);
 
 	if (context && context->error_func)
 		context->error_func (context, str, context->error_func_data);
@@ -224,17 +286,45 @@ void
 gp_context_status (GPContext *context, const char *format, ...)
 {
 	va_list args;
+#ifdef HAVE_VA_COPY
+	va_list xargs;
+#endif
+	int strsize = 1000;
 	char *str;
+	int n;
 
+	str = malloc(strsize);
+	if (!str) {
+		return;
+	}
 	va_start (args, format);
-	str = gpi_vsnprintf(format, args);
+#ifdef HAVE_VA_COPY
+	va_copy (xargs, args);
+#endif
+	n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+	va_end (xargs);
+#endif
+	if (n+1>strsize) {
+		free (str);
+		str = malloc(n+1);
+		if (!str) { 
+			va_end (args);
+			return;
+		}
+		strsize = n+1;
+#ifdef HAVE_VA_COPY
+		va_copy (xargs, args);
+#endif
+		n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+		va_end (xargs);
+#endif
+	}
 	va_end (args);
 
-	if (!str)
-		return;
-
 	/* Log the status message */
-	GP_LOG_D ("%s", str);
+	gp_log (GP_LOG_DEBUG, "context", "%s", str);
 
 	if (context && context->status_func)
 		context->status_func (context, str, context->status_func_data);
@@ -257,17 +347,46 @@ void
 gp_context_message (GPContext *context, const char *format, ...)
 {
 	va_list args;
+#ifdef HAVE_VA_COPY
+	va_list xargs;
+#endif
+	int strsize = 1000;
 	char *str;
+	int n;
 
+	str = malloc(strsize);
+	if (!str) {
+		va_end (xargs);
+		return;
+	}
 	va_start (args, format);
-	str = gpi_vsnprintf(format, args);
+#ifdef HAVE_VA_COPY
+	va_copy (xargs, args);
+#endif
+	n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+	va_end (xargs);
+#endif
+	if (n+1>strsize) {
+		free (str);
+		str = malloc(n+1);
+		if (!str) { 
+			va_end (args);
+			return;
+		}
+		strsize = n+1;
+#ifdef HAVE_VA_COPY
+		va_copy (xargs, args);
+#endif
+		n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+		va_end (xargs);
+#endif
+	}
 	va_end (args);
 
-	if (!str)
-		return;
-
 	/* Log the message */
-	GP_LOG_D ("%s", str);
+	gp_log (GP_LOG_DEBUG, "context", "%s", str);
 
 	if (context && context->message_func)
 		context->message_func (context, str, context->message_func_data);
@@ -292,20 +411,46 @@ gp_context_question (GPContext *context, const char *format, ...)
 {
 	GPContextFeedback feedback;
 	va_list args;
+#ifdef HAVE_VA_COPY
+	va_list xargs;
+#endif
+	int strsize = 1000;
 	char *str;
+	int n;
 
-	va_start (args, format);
-	str = gpi_vsnprintf(format, args);
-	va_end (args);
-
-	if (!str)
+	str = malloc(strsize);
+	if (!str) {
 		return GP_CONTEXT_FEEDBACK_OK;
+	}
+	va_start (args, format);
+#ifdef HAVE_VA_COPY
+	va_copy (xargs, args);
+#endif
+	n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+	va_end (xargs);
+#endif
+	if (n+1>strsize) {
+		free (str);
+		str = malloc(n+1);
+		if (!str) { 
+			va_end (args);
+			return GP_CONTEXT_FEEDBACK_OK;
+		}
+		strsize = n+1;
+#ifdef HAVE_VA_COPY
+		va_copy (xargs, args);
+#endif
+		n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+		va_end (xargs);
+#endif
+	}
+	va_end (args);
 
 	feedback = GP_CONTEXT_FEEDBACK_OK;
 	if (context && context->question_func)
 		feedback = context->question_func (context, str, context->question_func_data);
-
-	free (str);
 
 	return feedback;
 }

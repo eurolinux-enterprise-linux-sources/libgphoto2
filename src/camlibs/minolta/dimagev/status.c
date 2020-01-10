@@ -1,6 +1,6 @@
 /**********************************************************************
 *       Minolta Dimage V digital camera communication library         *
-*               Copyright 2000,2001 Gus Hartmann                      *
+*               Copyright © 2000,2001 Gus Hartmann                  *
 *                                                                     *
 *    This program is free software; you can redistribute it and/or    *
 *    modify it under the terms of the GNU General Public License as   *
@@ -13,13 +13,13 @@
 *    GNU General Public License for more details.                     *
 *                                                                     *
 *    You should have received a copy of the GNU General Public        *
-*    License along with this program; if not, write to the *
-*    Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-*    Boston, MA  02110-1301  USA
+*    License along with this program; if not, write to the Free       *
+*    Software Foundation, Inc., 59 Temple Place, Suite 330,           *
+*    Boston, MA 02111-1307 USA                                        *
 *                                                                     *
 **********************************************************************/
 
-/* $Id$ */
+/* $Id: status.c 5969 2002-12-15 11:45:10Z asl $ */
 
 #include "config.h"
 
@@ -47,11 +47,11 @@ int dimagev_get_camera_status(dimagev_t *dimagev) {
 		return GP_ERROR_IO;
 	}
 
-	if ( gp_port_write(dimagev->dev, (char *)p->buffer, p->length) < GP_OK ) {
+	if ( gp_port_write(dimagev->dev, p->buffer, p->length) < GP_OK ) {
 		GP_DEBUG( "dimagev_get_camera_status::unable to write packet");
 		free(p);
 		return GP_ERROR_IO;
-	} else if ( gp_port_read(dimagev->dev, (char *)&char_buffer, 1) < GP_OK ) {
+	} else if ( gp_port_read(dimagev->dev, &char_buffer, 1) < GP_OK ) {
 		GP_DEBUG( "dimagev_get_camera_status::no response from camera");
 		free(p);
 		return GP_ERROR_IO;
@@ -80,13 +80,13 @@ int dimagev_get_camera_status(dimagev_t *dimagev) {
 	}
 
 	char_buffer = DIMAGEV_EOT;
-	if ( gp_port_write(dimagev->dev, (char *)&char_buffer, 1) < GP_OK ) {
+	if ( gp_port_write(dimagev->dev, &char_buffer, 1) < GP_OK ) {
 		GP_DEBUG( "dimagev_get_camera_status::unable to send EOT");
 		free(p);
 		return GP_ERROR_IO;
 	}
 
-	if ( gp_port_read(dimagev->dev, (char *)&char_buffer, 1) < GP_OK ) {
+	if ( gp_port_read(dimagev->dev, &char_buffer, 1) < GP_OK ) {
 		GP_DEBUG( "dimagev_get_camera_status::no response from camera");
 		free(p);
 		return GP_ERROR_IO;

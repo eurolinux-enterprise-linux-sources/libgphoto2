@@ -33,8 +33,8 @@
  * \par
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
  
 
@@ -49,6 +49,8 @@
 #include "bayer.h"
 #include <gphoto2/gphoto2-result.h>
 #include <gphoto2/gphoto2-port-log.h>
+
+#define GP_MODULE "ahd_bayer"
 
 #define MAX(x,y) ((x < y) ? (y) : (x))
 #define MIN(x,y) ((x > y) ? (y) : (x))
@@ -261,7 +263,7 @@ int do_green_ctr_row(unsigned char *image, unsigned char *image_h,
 					value -= image[AD(x+2,y,w)+RED];
 				else
 					value -= image[AD(x+2,y,w)+BLUE];
-				div--;
+					div--;
 			}
 			if (x > 0) {
 				value += 2*image[AD(x-1,y,w)+GREEN];
@@ -425,19 +427,39 @@ int gp_ahd_interpolate (unsigned char *image, int w, int h, BayerTile tile)
 	unsigned char *homo_ch, *homo_cv;
 
 	window_h = calloc (w * 18, 1);
-	window_v = calloc (w * 18, 1);
-	homo_h = calloc (w*3, 1);
-	homo_v = calloc (w*3, 1);
-	homo_ch = calloc (w, 1);
-	homo_cv = calloc (w, 1);
-	if (!window_h || !window_v || !homo_h || !homo_v || !homo_ch || !homo_cv) {
+	if (!window_h) {
 		free (window_h);
+		GP_DEBUG("Out of memory\n");
+		return GP_ERROR_NO_MEMORY;
+	}
+	window_v = calloc(w * 18, 1);
+	if (!window_v) {
 		free (window_v);
+		GP_DEBUG("Out of memory\n");
+		return GP_ERROR_NO_MEMORY;
+	}
+	homo_h = calloc(w*3, 1);
+	if (!homo_h) {
 		free (homo_h);
+		GP_DEBUG("Out of memory\n");
+		return GP_ERROR_NO_MEMORY;
+	}
+	homo_v = calloc(w*3, 1);
+	if (!homo_v) {
 		free (homo_v);
+		GP_DEBUG("Out of memory\n");
+		return GP_ERROR_NO_MEMORY;
+	}
+	homo_ch = calloc (w, 1);
+	if (!homo_ch) {
 		free (homo_ch);
-		free (homo_cv);
-		GP_LOG_E ("Out of memory");
+		GP_DEBUG("Out of memory\n");
+		return GP_ERROR_NO_MEMORY;
+	}
+	homo_cv = calloc (w, 1);
+	if (!homo_cv) {
+		free (homo_ch);
+		GP_DEBUG("Out of memory\n");
 		return GP_ERROR_NO_MEMORY;
 	}
 	switch (tile) {

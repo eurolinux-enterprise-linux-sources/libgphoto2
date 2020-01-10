@@ -1,6 +1,6 @@
 /**********************************************************************
 *       Minolta Dimage V digital camera communication library         *
-*               Copyright 2000,2001 Gus Hartmann                      *
+*               Copyright © 2000,2001 Gus Hartmann                  *
 *                                                                     *
 *    This program is free software; you can redistribute it and/or    *
 *    modify it under the terms of the GNU General Public License as   *
@@ -13,13 +13,13 @@
 *    GNU General Public License for more details.                     *
 *                                                                     *
 *    You should have received a copy of the GNU General Public        *
-*    License along with this program; if not, write to the *
-*    Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-*    Boston, MA  02110-1301  USA
+*    License along with this program; if not, write to the Free       *
+*    Software Foundation, Inc., 59 Temple Place, Suite 330,           *
+*    Boston, MA 02111-1307 USA                                        *
 *                                                                     *
 **********************************************************************/
 
-/* $Id$ */
+/* $Id: util.c 5969 2002-12-15 11:45:10Z asl $ */
 
 #include "config.h"
 
@@ -82,7 +82,7 @@ unsigned char *dimagev_ycbcr_to_ppm(unsigned char *ycbcr) {
 	rgb_current = &(rgb_data[13]);
 
 	/* This is the header for a PPM "rawbits" bitmap of size 80x60. */
-	strncpy((char *)rgb_data, "P6\n80 60\n255\n", 13);
+	strncpy(rgb_data, "P6\n80 60\n255\n", 13);
 
 	for ( count = 0 ; count < 9600 ; count+=4, ycrcb_current+=4, rgb_current+=6 ) {
 		magic_b = ( ( ycrcb_current[2] > (unsigned char) 128 ? 128 : ycrcb_current[2] ) - 128 ) * ( 2 - ( 2 * CR_COEFF ) ) + ycrcb_current[0];

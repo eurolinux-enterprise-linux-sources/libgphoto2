@@ -13,9 +13,8 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the 
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 #define _BSD_SOURCE
 
@@ -28,9 +27,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <fcntl.h>
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 #include <gd.h>
 #endif
 
@@ -373,7 +373,7 @@ tp6801_check_file_present(Camera *camera, int idx)
 static int
 tp6801_decode_image(Camera *camera, char *_src, int **dest)
 {
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 	int x, y;
 	unsigned char *src = (unsigned char *)_src;
 
@@ -401,7 +401,7 @@ tp6801_decode_image(Camera *camera, char *_src, int **dest)
 static int
 tp6801_encode_image(Camera *camera, int **src, char *dest)
 {
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 	int x, y;
 
 	for (y = 0; y < camera->pl->height; y++) {

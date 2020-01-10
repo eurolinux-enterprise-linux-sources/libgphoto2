@@ -1,6 +1,6 @@
 /* test-filesys.c
  *
- * Copyright 2001 Lutz Mueller <lutz@users.sf.net>
+ * Copyright © 2001 Lutz Müller <lutz@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,14 +14,13 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 #include "config.h"
 
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 
 #ifdef HAVE_MCHECK_H
 #include <mcheck.h>
@@ -146,9 +145,7 @@ main ()
 	CameraList *list;
 	int x, count;
 	const char *name;
-	char *foldername;
 	GPContext *context;
-	int logid;
 
 #ifdef HAVE_MCHECK_H
 	mtrace();
@@ -156,7 +153,7 @@ main ()
 
 	CHECK (gp_list_new(&list));
 
-	logid = gp_log_add_func (GP_LOG_DEBUG, log_func, NULL);
+	gp_log_add_func (GP_LOG_DEBUG, log_func, NULL);
 	context = gp_context_new ();
 	gp_context_set_error_func (context, error_func, NULL);
 
@@ -271,9 +268,8 @@ main ()
 	}
 
 	printf ("*** Getting folder of 'file1'...\n");
-	CHECK (gp_filesystem_get_folder (fs, "file1", &foldername, context));
-	printf ("... found in '%s'.\n", foldername);
-	free(foldername);
+	CHECK (gp_filesystem_get_folder (fs, "file1", &name, context));
+	printf ("... found in '%s'.\n", name);
 
 	printf ("*** Deleting a couple of files...\n");
 	CHECK (gp_filesystem_delete_file (fs, "/whatever", "file5", context));
@@ -292,7 +288,6 @@ main ()
 #ifdef HAVE_MCHECK_H
 	muntrace();
 #endif
-	gp_log_remove_func (logid);
 
 	return (0);
 }

@@ -1,6 +1,6 @@
 /*
  * Jenoptik JD11 Camera Driver
- * Copyright 1999-2001 Marcus Meissner <marcus@jet.franken.de>
+ * Copyright © 1999-2001 Marcus Meissner <marcus@jet.franken.de>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -198,6 +198,7 @@ static int camera_config_get (Camera *camera, CameraWidget **window,
 	/* this is a write only capability */
 	value_float = 1;
 	gp_widget_set_value (widget, &value_float);
+	gp_widget_changed(widget);
 
 	gp_widget_new (GP_WIDGET_SECTION, _("Color Settings"), &section);
 	gp_widget_append (*window, section);
@@ -212,6 +213,7 @@ static int camera_config_get (Camera *camera, CameraWidget **window,
 	gp_widget_set_range (widget, 50, 150, 1);
 	red*=100.0;
 	gp_widget_set_value (widget, &red);
+	gp_widget_changed(widget);
 
 	gp_widget_new (GP_WIDGET_RANGE, _("Green"), &widget);
 	gp_widget_set_name (widget, "green");
@@ -219,6 +221,7 @@ static int camera_config_get (Camera *camera, CameraWidget **window,
 	gp_widget_set_range (widget, 50, 150, 1);
 	green*=100.0;
 	gp_widget_set_value (widget, &green);
+	gp_widget_changed(widget);
 
 	gp_widget_new (GP_WIDGET_RANGE, _("Blue"), &widget);
 	gp_widget_set_name (widget, "blue");
@@ -226,6 +229,7 @@ static int camera_config_get (Camera *camera, CameraWidget **window,
 	gp_widget_set_range (widget, 50, 150, 1);
 	blue*=100.0;
 	gp_widget_set_value (widget, &blue);
+	gp_widget_changed(widget);
 
 	return (GP_OK);
 }
@@ -243,7 +247,6 @@ static int camera_config_set (Camera *camera, CameraWidget *window,
 	gp_widget_get_child_by_label (section,_("Bulb Exposure Time"), &widget);
 	if (gp_widget_changed (widget)) {
 		gp_widget_get_value (widget, &f);
-		gp_widget_set_changed (widget, 0);
 		ret = jd11_set_bulb_exposure(camera->port,(int)f);
 		if (ret < GP_OK)
 		    return ret;
@@ -253,19 +256,16 @@ static int camera_config_set (Camera *camera, CameraWidget *window,
 
 	gp_widget_get_child_by_label (section,_("Red"), &widget);
 	changed|=gp_widget_changed (widget);
-	gp_widget_set_changed (widget, 0);
 	gp_widget_get_value (widget, &red);
 	red/=100.0;
 
 	gp_widget_get_child_by_label (section,_("Green"), &widget);
 	changed|=gp_widget_changed (widget);
-	gp_widget_set_changed (widget, 0);
 	gp_widget_get_value (widget, &green);
 	green/=100.0;
 
 	gp_widget_get_child_by_label (section,_("Blue"), &widget);
 	changed|=gp_widget_changed (widget);
-	gp_widget_set_changed (widget, 0);
 	gp_widget_get_value (widget, &blue);
 	blue/=100.0;
 

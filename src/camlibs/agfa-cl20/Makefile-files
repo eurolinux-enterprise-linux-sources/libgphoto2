@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += \
 	agfa-cl20/README.agfa-cl20 \
 	agfa-cl20/STATUS agfa-cl20/ChangeLog \

@@ -10,6 +10,7 @@
  * Taken from: http://credentiality2.blogspot.com/2008/07/linux-libgphoto2-image-capture-from.html 
  */
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -27,7 +28,7 @@ static void errordumper(GPLogLevel level, const char *domain, const char *str,
   struct timeval tv;
 
   gettimeofday (&tv, NULL);
-  fprintf(stdout, "%d.%d: %s\n", (int)tv.tv_sec, (int)tv.tv_usec, str);
+  fprintf(stdout, "%d.%d: %s\n", tv.tv_sec, tv.tv_usec, str);
 }
 
 /* This seems to have no effect on where images go
@@ -107,7 +108,7 @@ capture_to_file(Camera *canon, GPContext *canoncontext, char *fn) {
 
 	printf("Pathname on the camera: %s/%s\n", camera_file_path.folder, camera_file_path.name);
 
-	fd = open(fn, O_CREAT | O_WRONLY | O_BINARY, 0644);
+	fd = open(fn, O_CREAT | O_WRONLY, 0644);
 	retval = gp_file_new_from_fd(&canonfile, fd);
 	printf("  Retval: %d\n", retval);
 	retval = gp_camera_file_get(canon, camera_file_path.folder, camera_file_path.name,
@@ -128,7 +129,7 @@ main(int argc, char **argv) {
 	int	retval;
 	GPContext *canoncontext = sample_create_context();
 
-	gp_log_add_func(GP_LOG_DEBUG, errordumper, NULL);
+	gp_log_add_func(GP_LOG_ERROR, errordumper, NULL);
 	gp_camera_new(&canon);
 
 	/* When I set GP_LOG_DEBUG instead of GP_LOG_ERROR above, I noticed that the
@@ -145,12 +146,6 @@ main(int argc, char **argv) {
 	canon_enable_capture(canon, TRUE, canoncontext);
 	/*set_capturetarget(canon, canoncontext);*/
 	capture_to_file(canon, canoncontext, "foo.jpg");
-	capture_to_file(canon, canoncontext, "foo1.jpg");
-	capture_to_file(canon, canoncontext, "foo2.jpg");
-	capture_to_file(canon, canoncontext, "foo3.jpg");
-	capture_to_file(canon, canoncontext, "foo4.jpg");
-	capture_to_file(canon, canoncontext, "foo5.jpg");
-	capture_to_file(canon, canoncontext, "foo6.jpg");
 	gp_camera_exit(canon, canoncontext);
 	return 0;
 }

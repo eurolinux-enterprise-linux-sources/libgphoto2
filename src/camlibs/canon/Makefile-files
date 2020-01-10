@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_LTLIBRARIES += canon.la
 
 camlibdoc_DATA += canon/README.canon

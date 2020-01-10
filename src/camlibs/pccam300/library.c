@@ -19,8 +19,8 @@
 /*                                                              */
 /* You should have received a copy of the GNU Library General   */
 /* Public License along with this library; if not, write to the */
-/* Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,*/
-/* Boston, MA  02110-1301  USA					*/
+/* Free Software Foundation, Inc., 59 Temple Place - Suite 330, */
+/* Boston, MA 02111-1307, USA.                                  */
 /****************************************************************/
 
 #include <config.h>
@@ -104,8 +104,7 @@ file_list_func (CameraFilesystem *fs, const char *folder,
 		CameraList *list, void *data, GPContext *context)
 {
 	Camera *camera = data;
-	unsigned int i, id, size, type;
-	int filecount;
+	unsigned int i, filecount, id, size, type;
 	CameraFile *file;
 	CameraFileInfo info;
 	unsigned char *buffer = NULL;
@@ -152,7 +151,7 @@ file_list_func (CameraFilesystem *fs, const char *folder,
 		}
 
 		if (file)
-			gp_file_set_data_and_size (file, (char *)buffer, size);
+			gp_file_set_data_and_size (file, buffer, size);
 		else
 			free (buffer);
 		
@@ -182,8 +181,7 @@ get_file_func (CameraFilesystem *fs, const char *folder,
 {
 	Camera *camera = user_data;
 	unsigned char *data = NULL;
-	unsigned int size, mimetype;
-	int index;
+	unsigned int size, index, mimetype;
 
 	size = 0;
 	index = gp_filesystem_number (fs, folder, filename, context);
@@ -198,7 +196,7 @@ get_file_func (CameraFilesystem *fs, const char *folder,
 		default:
 			return GP_ERROR_NOT_SUPPORTED;
 	}
-	return gp_file_set_data_and_size (file, (char *)data, size);
+	return gp_file_set_data_and_size (file, data, size);
 }
 
 static int

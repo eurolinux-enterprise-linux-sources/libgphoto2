@@ -1,6 +1,6 @@
 /* library.c
  *
- * Copyright 2002 Lutz Mueller <lutz@users.sourceforge.net>
+ * Copyright © 2002 Lutz Müller <lutz@users.sourceforge.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -289,7 +289,7 @@ put_file_func (CameraFilesystem *fs, const char *folder, const char *name,
 	if (type != GP_FILE_TYPE_NORMAL)
 		return GP_ERROR_BAD_PARAMETERS;
 	CR (gp_file_get_data_and_size (file, &data, &size));
-	return ricoh_put_file (camera, context, name, (const unsigned char *)data, size);
+	return ricoh_put_file (camera, context, name, data, size);
 }
 
 #undef N_ELEMENTS
@@ -392,8 +392,8 @@ static struct {
 	unsigned int __i;						\
 									\
 	CR (gp_widget_new (GP_WIDGET_RADIO, _(Name), &__w));		\
-	CRW (gp_widget_set_name (__w, (Name)), __w);			\
-	CRW (gp_widget_append ((s), __w), __w);				\
+	CR (gp_widget_set_name (__w, (Name)));				\
+	CR (gp_widget_append ((s), __w));				\
 	CR (ricoh_get_##n ((ca), (co), &__v));				\
 	for (__i = 0; __i < N_ELEMENTS (ricoh_##n##s); __i++) {		\
 		CR (gp_widget_add_choice (__w, _(ricoh_##n##s[__i].name)));	\
@@ -412,7 +412,6 @@ static struct {
 									\
         CR (gp_widget_get_child_by_name (wi, Name, &__w));		\
 	if (gp_widget_changed (__w)) {					\
-	        gp_widget_set_changed (__w, 0);				\
 		CR (gp_widget_get_value (__w, &__v));			\
 		for (__i = 0; __i < N_ELEMENTS (ricoh_##n##s); __i++)	\
 			if (!strcmp (__v, _(ricoh_##n##s[__i].name))) {	\
@@ -433,13 +432,13 @@ camera_get_config (Camera *c, CameraWidget **window, GPContext *co)
 
 	/* General settings */
 	CR (gp_widget_new (GP_WIDGET_SECTION, _("General"), &s));
-	CRW (gp_widget_append (*window, s), s);
+	CR (gp_widget_append (*window, s));
 
 	/* Copyright */
 	CR (gp_widget_new (GP_WIDGET_TEXT, _("Copyright"), &w));
-	CRW (gp_widget_set_name (w, "copyright"), w);
-	CRW (gp_widget_set_info (w, _("Copyright (max. 20 characters)")), w);
-	CRW (gp_widget_append (s, w), w);
+	CR (gp_widget_set_name (w, "copyright"));
+	CR (gp_widget_set_info (w, _("Copyright (max. 20 characters)")));
+	CR (gp_widget_append (s, w));
 	CR (ricoh_get_copyright (c, co, &copyright));
 	CR (gp_widget_set_value (w, (void *) copyright));
 
@@ -483,7 +482,6 @@ camera_set_config (Camera *c, CameraWidget *window, GPContext *co)
 	/* Copyright */
 	CR (gp_widget_get_child_by_name (window, "copyright", &w));
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		CR (gp_widget_get_value (w, &v_char));
 		CR (ricoh_set_copyright (c, co, v_char));
 	}
@@ -491,7 +489,6 @@ camera_set_config (Camera *c, CameraWidget *window, GPContext *co)
 	/* Date */
 	CR (gp_widget_get_child_by_name (window, "date", &w));
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		CR (gp_widget_get_value (w, &time));
 		CR (ricoh_set_date (c, co, time));
 	}

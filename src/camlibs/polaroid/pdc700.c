@@ -1,6 +1,6 @@
 /* pdc700.c
  *
- * Copyright 2001 Lutz Mueller
+ * Copyright © 2001 Lutz Müller
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -208,7 +208,7 @@ pdc700_send (Camera *camera, unsigned char *cmd, unsigned int cmd_len)
 	cmd[1] = (cmd_len - 3) >> 8;
 	cmd[2] = (cmd_len - 3) & 0xff;
 	cmd[cmd_len - 1] = calc_checksum (cmd + 3, cmd_len - 1 - 3);
-	CR (gp_port_write (camera->port, (char *)cmd, cmd_len));
+	CR (gp_port_write (camera->port, cmd, cmd_len));
 
 	return (GP_OK);
 }
@@ -226,7 +226,7 @@ pdc700_read (Camera *camera, unsigned char *cmd,
 	 * Read the header (0x40 plus 2 bytes indicating how many bytes
 	 * will follow)
 	 */
-	CR (gp_port_read (camera->port, (char *)header, 3));
+	CR (gp_port_read (camera->port, header, 3));
 	if (header[0] != 0x40) {
 		gp_context_error (context, _("Received unexpected "
 				     "header (%i)"), header[0]);
@@ -235,7 +235,7 @@ pdc700_read (Camera *camera, unsigned char *cmd,
 	*b_len = (header[2] << 8) | header [1];
 
 	/* Read the remaining bytes */
-	CR (gp_port_read (camera->port, (char *)b, *b_len));
+	CR (gp_port_read (camera->port, b, *b_len));
 
 	/*
 	 * The first byte indicates if this the response for our command.
@@ -392,7 +392,7 @@ pdc700_baud (Camera *camera, int baud, GPContext *context)
 {
 	unsigned char cmd[6];
 	unsigned char buf[2048];
-	unsigned int buf_len = 0;
+	int buf_len;
 
 	cmd[3] = PDC700_BAUD;
 	switch (baud) {
@@ -422,7 +422,7 @@ pdc700_baud (Camera *camera, int baud, GPContext *context)
 static int
 pdc700_init (Camera *camera, GPContext *context)
 {
-	unsigned int buf_len = 0;
+	int buf_len;
 	unsigned char cmd[5];
 	unsigned char buf[2048];
 
@@ -436,7 +436,7 @@ static int
 pdc700_picinfo (Camera *camera, unsigned int n, PDCPicInfo *info,
 		GPContext *context)
 {
-	unsigned int buf_len = 0;
+	int buf_len;
 	unsigned char cmd[7];
 	unsigned char buf[2048];
 
@@ -477,7 +477,7 @@ pdc700_picinfo (Camera *camera, unsigned int n, PDCPicInfo *info,
 	/* The meaning of buf[22] is unknown */
 
 	/* Version info */
-	strncpy (info->version, (char *)&buf[23], 6);
+	strncpy (info->version, &buf[23], 6);
 
 	/*
 	 * Now follows some picture data we have yet to reverse
@@ -492,7 +492,7 @@ pdc700_config (Camera *camera, PDCConf conf, unsigned char value, GPContext *con
 {
 	unsigned char cmd[12];
 	unsigned char buf[512];
-	unsigned int buf_len = 0;
+	int buf_len;
 
 	cmd[3] = PDC700_CONFIG;
 	cmd[4] = conf;
@@ -507,7 +507,7 @@ pdc700_config (Camera *camera, PDCConf conf, unsigned char value, GPContext *con
 static int
 pdc700_info (Camera *camera, PDCInfo *info, GPContext *context)
 {
-	unsigned int buf_len = 0;
+	int buf_len;
 	unsigned char buf[2048];
 	unsigned char cmd[5];
 
@@ -548,7 +548,7 @@ pdc700_info (Camera *camera, PDCInfo *info, GPContext *context)
 	}
 
 	/* Protocol version */
-	strncpy (info->version, (char *)&buf[8], 6);
+	strncpy (info->version, &buf[8], 6);
 
 	/* buf[14-15]: We don't know. Seems to be always 00 00 */
 
@@ -623,7 +623,7 @@ pdc700_set_date (Camera *camera, time_t time, GPContext *context)
 {
 	unsigned char cmd[15];
 	unsigned char buf[512];
-	unsigned int buf_len = 0;
+	int buf_len;
 	struct tm *tm;
 	PDCInfo info;
 
@@ -649,7 +649,7 @@ static int
 pdc700_capture (Camera *camera, GPContext *context)
 {
         unsigned char cmd[5], buf[1024];
-        unsigned int buf_len = 0;
+        unsigned int buf_len;
 	int r = 0;
 	int try;
 	PDCInfo info;
@@ -707,7 +707,7 @@ static int
 pdc700_delete (Camera *camera, unsigned int n, GPContext *context)
 {
 	unsigned char cmd[6], buf[1024];
-	unsigned int buf_len = 0;
+	unsigned int buf_len;
 
 	cmd[3] = PDC700_DEL;
 	cmd[4] = n;
@@ -866,7 +866,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 	case GP_FILE_TYPE_NORMAL:
 
 		/* Files are always JPEG */
-		CRF (gp_file_set_data_and_size (file, (char *)data, size), data);
+		CRF (gp_file_set_data_and_size (file, data, size), data);
 		CR (gp_file_set_mime_type (file, GP_MIME_JPEG));
 		break;
 
@@ -880,7 +880,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 		    (data[size - 2] == 0xff) && (data[size - 1] == 0xd9)) {
 
 			/* Image is JPEG */
-			CRF (gp_file_set_data_and_size (file, (char *)data, size),
+			CRF (gp_file_set_data_and_size (file, data, size),
 			     data);
 			CR (gp_file_set_mime_type (file, GP_MIME_JPEG));
 
@@ -907,7 +907,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 			free (data);
 			CRF (gp_file_append (file, header, strlen (header)),
 			     ppm);
-			CRF (gp_file_append (file, (char *)ppm, ppm_size), ppm);
+			CRF (gp_file_append (file, ppm, ppm_size), ppm);
 			free (ppm);
 			CR (gp_file_set_mime_type (file, GP_MIME_PPM));
 
@@ -923,7 +923,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 
 	case GP_FILE_TYPE_RAW:
 #if 1
-		CRF (gp_file_set_data_and_size (file, (char *)data, size), data);
+		CRF (gp_file_set_data_and_size (file, data, size), data);
 		CR (gp_file_set_mime_type (file, GP_MIME_RAW));
 		break;
 #endif
@@ -1037,7 +1037,6 @@ which_radio_button (CameraWidget *window, const char *label,
 	if (!gp_widget_changed (child))
 		return -1;
 
-	gp_widget_set_changed (child, FALSE);
 	gp_widget_get_value (child, &value);
 
 	for (i = 0; opt[i]; i++)
@@ -1081,7 +1080,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 	/* Auto poweroff */
 	r = gp_widget_get_child_by_label (window, AUTO_POWEROFF, &child);
 	if ((r == GP_OK) && gp_widget_changed (child)) {
-		gp_widget_set_changed (child, FALSE);
 		gp_widget_get_value (child, &range);
 		CR (pdc700_config (camera, PDC_CONF_POWEROFF,
 				   (unsigned char) range, context));
@@ -1090,7 +1088,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 	/* Date and time */
 	r = gp_widget_get_child_by_label (window, _("Date and Time"), &child);
 	if ((r == GP_OK) && gp_widget_changed (child)) {
-		gp_widget_set_changed (child, FALSE);
 		gp_widget_get_value (child, &i);
 		if (i != -1)
 		  pdc700_set_date(camera, (time_t) i, context);

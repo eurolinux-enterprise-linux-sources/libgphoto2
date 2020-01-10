@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_LTLIBRARIES += kodak_dc3200.la
 EXTRA_DIST += kodak/dc3200/ChangeLog
 

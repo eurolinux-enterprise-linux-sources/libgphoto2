@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += lg_gsm/README.lg_gsm lg_gsm/ChangeLog
 camlibdoc_DATA += lg_gsm/README.lg_gsm
 

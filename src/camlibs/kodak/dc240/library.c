@@ -1,29 +1,10 @@
-/* library.c
- *
- * Copyright (C) 2001,2002 Hubert Figuiere <hfiguiere@teaser.fr>
- * Copyright (C) 2000,2001,2002 Scott Fritzinger
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
- */
-
 /*
   Kodak DC 240/280/3400/5000 driver.
   Maintainer:
        Hubert Figuiere <hfiguiere@teaser.fr>
  */
+
+#define _POSIX_C_SOURCE 199309L
 
 #include "config.h"
 
@@ -150,7 +131,7 @@ static int dc240_packet_write (Camera *camera, unsigned char *packet, int size, 
 write_again:
     /* If retry, give camera some recup time */
     if (x > 0) {
-        usleep(SLEEP_TIMEOUT * 1000);
+        GP_SYSTEM_SLEEP(SLEEP_TIMEOUT);
     }
 
     /* Return error if too many retries */
@@ -258,7 +239,7 @@ static int dc240_wait_for_busy_completion (Camera *camera)
 	BUSY_RETRIES = 100
     };
     unsigned char p[8];
-    int retval = 0;
+    int retval;
     int x=0, done=0;
 
     /* Wait for command completion */
@@ -400,7 +381,8 @@ read_data_read_again:
     }
     gp_context_progress_stop (context, id);
     /* Read in command completed */
-    return dc240_wait_for_completion(camera);
+    dc240_wait_for_completion(camera);
+    return (GP_OK);
 }
 
 
@@ -529,7 +511,7 @@ int dc240_set_speed (Camera *camera, int speed)
     if (retval != GP_OK)
         goto fail;
 
-    usleep(300 * 1000);
+    GP_SYSTEM_SLEEP(300);
     retval = dc240_wait_for_completion(camera);
     if (retval != GP_OK)
 	goto fail;

@@ -19,8 +19,8 @@
  * \note
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #ifndef __GPHOTO2_CAMERA_H__
@@ -98,10 +98,11 @@ typedef enum {
  *
  * Used by gp_camera_wait_for_event() to specify what
  * event happened on the camera.
+ * This functionality is still in development and might change.
  *
  */
 typedef enum {
-	GP_EVENT_UNKNOWN,	/**< unknown and unhandled event. argument is a char* or NULL */
+	GP_EVENT_UNKNOWN,	/**< unknown and unhandled event */
 	GP_EVENT_TIMEOUT,	/**< timeout, no arguments */
 	GP_EVENT_FILE_ADDED,	/**< CameraFilePath* = file path on camfs */
 	GP_EVENT_FOLDER_ADDED,	/**< CameraFilePath* = folder on camfs */
@@ -135,7 +136,6 @@ typedef enum {
  * \returns a gphoto error code 
  */
 typedef int (*CameraExitFunc)      (Camera *camera, GPContext *context);
-
 /**
  * \brief Get a configuration tree for the camera and its driver
  *
@@ -158,55 +158,6 @@ typedef int (*CameraExitFunc)      (Camera *camera, GPContext *context);
 typedef int (*CameraGetConfigFunc) (Camera *camera, CameraWidget **widget,
 				    GPContext *context);
 /**
- * \brief Get a configuration widget for a specific configuration
- *
- * \param camera the current camera
- * \param name the name of the widget
- * \param widget pointer to store the toplevel widget of the tree
- * \param context the active #GPContext
- *
- * A camera driver can support configuration of either its own behaviour
- * or the camera device itself. To allow a flexible driver framework,
- * the camera driver provides a generic configuration widget tree to the
- * frontend, which then renders it, allows user input and sends it back
- * via the #CameraSetConfigFunc function to have the driver configure itself
- * or the camera.
- * 
- * This specific function retrieves one specific named entry, and not the full
- * tree to allow for querying specific settings faster.
- *
- * If you do not have configuration ability, there is no need to specify this
- * function.
- *
- * \returns a gphoto error code
- */
-typedef int (*CameraGetSingleConfigFunc) (Camera *camera, const char *name, CameraWidget **widget,
-				    GPContext *context);
-/**
- * \brief List all configuration widgets for a specific configuration
- *
- * \param camera the current camera
- * \param list the list of widgets available
- * \param context the active #GPContext
- *
- * A camera driver can support configuration of either its own behaviour
- * or the camera device itself. To allow a flexible driver framework,
- * the camera driver provides a generic configuration widget tree to the
- * frontend, which then renders it, allows user input and sends it back
- * via the #CameraSetConfigFunc function to have the driver configure itself
- * or the camera.
- * 
- * This specific function retrieves all the available configuration values in a flat list.
- *
- * This is different than the GetConfigFunc, which returns a configuration tree.
- *
- * If you do not have configuration ability, there is no need to specify this
- * function.
- *
- * \returns a gphoto error code
- */
-typedef int (*CameraListConfigFunc) (Camera *camera, CameraList *list, GPContext *context);
-/**
  * \brief Set the configuration in the camera
  *
  * \param camera the current camera 
@@ -221,21 +172,6 @@ typedef int (*CameraListConfigFunc) (Camera *camera, CameraList *list, GPContext
  */
 typedef int (*CameraSetConfigFunc) (Camera *camera, CameraWidget  *widget,
 				    GPContext *context);
-/**
- * \brief Set a single configuration variable in the camera
- *
- * \param camera the current camera 
- * \param name the widget to set
- * \param widget the configuration widget tree that was changed
- * \param context the active #GPContext
- *
- * This function is called in the driver after the configuration value is set.
- * 
- * \returns a gphoto error code
- */
-typedef int (*CameraSetSingleConfigFunc) (Camera *camera, const char *name, CameraWidget  *widget,
-				    GPContext *context);
-
 typedef int (*CameraCaptureFunc)   (Camera *camera, CameraCaptureType type,
 				    CameraFilePath *path, GPContext *context);
 typedef int (*CameraTriggerCaptureFunc)   (Camera *camera, GPContext *context);
@@ -290,10 +226,6 @@ typedef struct _CameraFunctions {
 	/* Configuration */
 	CameraGetConfigFunc       get_config;	/**< \brief Called for requesting the configuration widgets. */
 	CameraSetConfigFunc       set_config;	/**< \brief Called after a configuration was changed */
-
-	CameraListConfigFunc      list_config;	/**< \brief Called for listing the available configuration widgets. */
-	CameraGetSingleConfigFunc get_single_config;	/**< \brief Called for requesteing a single widget. */
-	CameraSetSingleConfigFunc set_single_config;	/**< \brief Called for setting a single configuration widget. */
 
 	/* Capturing */
 	CameraCaptureFunc        capture;	/**< \brief Remote control the camera to capture */
@@ -384,13 +316,7 @@ int gp_camera_free 		 (Camera *camera);
 
 int gp_camera_get_config	 (Camera *camera, CameraWidget **window,
 				  GPContext *context);
-int gp_camera_list_config	 (Camera *camera, CameraList *list,
-				  GPContext *context);
-int gp_camera_get_single_config	 (Camera *camera, const char *name, CameraWidget **widget,
-				  GPContext *context);
 int gp_camera_set_config	 (Camera *camera, CameraWidget  *window,
-				  GPContext *context);
-int gp_camera_set_single_config	 (Camera *camera, const char *name, CameraWidget  *widget,
 				  GPContext *context);
 int gp_camera_get_summary	 (Camera *camera, CameraText *summary,
 				  GPContext *context);

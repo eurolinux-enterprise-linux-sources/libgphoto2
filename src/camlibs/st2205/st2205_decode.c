@@ -13,21 +13,20 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the 
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 #include "config.h"
 
 #include <string.h>
 #include <stdlib.h>
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 # include <gd.h>
 #endif
 
 #include "st2205.h"
 
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 #define CLAMP256(x) (((x) > 255) ? 255 : (((x) < 0) ? 0 : (x)))
 #define CLAMP64S(x) (((x) > 63) ? 63 : (((x) < -64) ? -64 : (x)))
 
@@ -39,7 +38,7 @@ static int
 st2205_decode_block(CameraPrivateLibrary *pl, unsigned char *src,
 	int src_length, int **dest, int dest_x, int dest_y)
 {
-	const st2205_lookup_row *luma_table, *chroma_table;
+	st2205_lookup_row *luma_table, *chroma_table;
 	int y_base, uv_base[2], uv_corr[2];
 	int16_t Y[64], UV[2][16];
 	int x, y, r, g, b, uv;
@@ -54,8 +53,8 @@ st2205_decode_block(CameraPrivateLibrary *pl, unsigned char *src,
 		return GP_ERROR_CORRUPTED_DATA;
 	}
 	y_base = src[1] & 0x7f;
-	luma_table = st2205_lookup[src[1] >> 7];
-	chroma_table = st2205_lookup[2];
+	luma_table = pl->lookup[src[1] >> 7];
+	chroma_table = pl->lookup[2];
 
 	uv_base[0] = src[2] & 0x7f;
 	uv_corr[0] = src[2] & 0x80;
@@ -165,7 +164,7 @@ st2205_decode_image(CameraPrivateLibrary *pl, unsigned char *src, int **dest)
 	return 0;
 }
 
-static uint8_t st2205_find_closest_match(const st2205_lookup_row *table,
+static uint8_t st2205_find_closest_match(st2205_lookup_row *table,
 	  int16_t *row, int *smallest_diff_ret)
 {
 	int i, j;
@@ -209,7 +208,7 @@ static int
 st2205_code_block(CameraPrivateLibrary *pl, int **src,
 	int src_x, int src_y, unsigned char *dest, int allow_uv_corr)
 {
-	const st2205_lookup_row *luma_table;
+	st2205_lookup_row *luma_table;
 	int y_base, uv_base[2];
 	int16_t Y[64], UV[2][16];
 	uint8_t corr1, corr2, *pattern;
@@ -274,17 +273,17 @@ st2205_code_block(CameraPrivateLibrary *pl, int **src,
 	/* Step 3 encode chroma values */
 	for (uv = 0; uv < 2; uv++) {
 		pattern = dest + used;
-		dest[used++] = st2205_find_closest_match (st2205_lookup[2],
+		dest[used++] = st2205_find_closest_match (pl->lookup[2],
 							  &UV[uv][0], &diff1);
-		dest[used++] = st2205_find_closest_match (st2205_lookup[2],
+		dest[used++] = st2205_find_closest_match (pl->lookup[2],
 							  &UV[uv][8], &diff2);
 		if ((diff1 > 64 || diff2 > 64) && allow_uv_corr) {
 			dest[2 + uv] |= 0x80;
 			for (x = 0; x < 16; x+= 2) {
 				corr1 = st2205_closest_correction(UV[uv][x] -
-				  st2205_lookup[2][pattern[x / 8]][x % 8]);
-				corr2 = st2205_closest_correction(UV[uv][x + 1] -
-				- st2205_lookup[2][pattern[x / 8]][x % 8 + 1]);
+					pl->lookup[2][pattern[x / 8]][x % 8]);
+				corr2 = st2205_closest_correction(UV[uv][x + 1]
+				   - pl->lookup[2][pattern[x / 8]][x % 8 + 1]);
 				dest[used++] = (corr1 << 4) | corr2;
 			}
 		}
@@ -294,17 +293,17 @@ st2205_code_block(CameraPrivateLibrary *pl, int **src,
 	diff1 = 0;
 	diff2 = 0;
 	for (y = 0; y < 8; y++) {
-		st2205_find_closest_match(st2205_lookup[0], &Y[y * 8], &x);
+		st2205_find_closest_match(pl->lookup[0], &Y[y * 8], &x);
 		diff1 += x;
-		st2205_find_closest_match(st2205_lookup[1], &Y[y * 8], &x);
+		st2205_find_closest_match(pl->lookup[1], &Y[y * 8], &x);
 		diff2 += x;
 	}
 
 	if (diff1 <= diff2) {
-		luma_table = st2205_lookup[0];
+		luma_table = pl->lookup[0];
 		dest[1] |= 0x00;
 	} else {
-		luma_table = st2205_lookup[1];
+		luma_table = pl->lookup[1];
 		dest[1] |= 0x80;
 	}
 

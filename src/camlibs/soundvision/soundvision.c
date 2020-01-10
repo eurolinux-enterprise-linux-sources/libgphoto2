@@ -1,30 +1,14 @@
 /*
  * soundvision.c
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details. 
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
- *
- *
  * For cameras using the Clarity2 chip made by Soundvision Inc.
  * Made entirely w/o Soundvision's help.  They would not give
  * documentation.  Reverse-engineered from usb-traces.
  * 
- * Copyright 2002-2003 Vince Weaver <vince@deater.net>
+ * Copyright © 2002-2003 Vince Weaver <vince@deater.net>
  * 
  * Originally based on the digita driver 
- * Copyright 1999-2000 Johannes Erdfelt, VA Linux Systems
+ * Copyright © 1999-2000 Johannes Erdfelt, VA Linux Systems
  */
 
 #include "config.h"
@@ -298,7 +282,7 @@ static int get_file_func (CameraFilesystem *fs, const char *folder,
    
     if (!data) return GP_ERROR;
 
-    gp_file_set_data_and_size (file, (char *)data, size);
+    gp_file_set_data_and_size (file, data, size);
        /* Maybe skip below if EXIF data present? */
    
        /* As far as I know we only support JPG and MOV */
@@ -324,20 +308,21 @@ static int camera_summary(Camera *camera, CameraText *summary,
     soundvision_reset(camera->pl,revision,NULL);
    
     if (camera->pl->device_type==SOUNDVISION_TIGERFASTFLICKS) {
-       int mem_total,mem_free,num_pics, ret;
-
-       ret = tiger_get_mem(camera->pl,&num_pics,&mem_total,&mem_free);
-       if (ret < GP_OK)
-           return ret;
+       
+       int mem_total,mem_free,num_pics;
+       tiger_get_mem(camera->pl,&num_pics,&mem_total,&mem_free);
        
        sprintf(summary->text, _("Firmware Revision: %8s\n"
 				"Pictures:     %i\n"
 				"Memory Total: %ikB\n"
 				"Memory Free:  %ikB\n"),
 				revision,num_pics,mem_total,mem_free);
-    } else {
+    }
+   
+    else {
 	sprintf(summary->text, _("Firmware Revision: %8s"), revision);
     }
+   
     return GP_OK;
 }
 
@@ -362,8 +347,6 @@ static int camera_capture (Camera *camera, CameraCaptureType type,
     }
     else return GP_ERROR_NOT_SUPPORTED;
 
-    if (result < GP_OK)
-       return result;
    
     soundvision_get_file_list(camera->pl);
    
@@ -373,8 +356,13 @@ static int camera_capture (Camera *camera, CameraCaptureType type,
       
     strcpy (path->name,camera->pl->file_list);
     strcpy (path->folder, "/");
+	  
+	  
 /*    gp_filesystem_append (camera->fs, path->folder,
 			  path->name, context);*/
+
+
+    
     return GP_OK;
 }
 
@@ -401,7 +389,7 @@ static int put_file_func (CameraFilesystem *fs, const char *folder, const char *
    
     Camera *camera=data;
     const char *data_file;
-    long unsigned int data_size;
+    long data_size;
    
     /*
      * Upload the file to the camera. Use gp_file_get_data_and_size, etc.

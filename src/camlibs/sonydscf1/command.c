@@ -1,32 +1,10 @@
-/* command.c
- *
- * Copyright (C) M. Adam Kendall <joker@penguinpub.com>
- * Copyright (C) 2002 Bart van Leeuwen <bart@netage.nl>
- *
- * Based on the chotplay CLI interface from Ken-ichi Hayashi 1996,1997
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
- */
-
-#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
 #include "config.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include <gphoto2/gphoto2.h>
 
@@ -93,24 +71,24 @@ static int recvdata(GPPort *port, unsigned char *p, int len)
   int i;
 
   gp_log (GP_LOG_DEBUG, "recvdata", "reading %d bytes", len);
-  gp_port_read(port, (char *)&s, 1);  /* BOFL */
-  gp_port_read(port, (char *)&t, 1);  /* recvaddr */
+  gp_port_read(port, &s, 1);  /* BOFL */
+  gp_port_read(port, &t, 1);  /* recvaddr */
 
   if(t != recvaddr[address]){
     gp_log (GP_LOG_ERROR, "recvdata", "address %02x does not match %02x, draining 3 bytes", t, recvaddr[address]);
-    gp_port_read(port, (char *)&s, 1);  /* drain */
-    gp_port_read(port, (char *)&s, 1);  /* drain */
-    gp_port_read(port, (char *)&s, 1);  /* drain */
+    gp_port_read(port, &s, 1);  /* drain */
+    gp_port_read(port, &s, 1);  /* drain */
+    gp_port_read(port, &s, 1);  /* drain */
     Abort(port);
     return(-1);
   }
   i = len;
   sum = (int) t;
-  while ((GP_OK <= gp_port_read(port, (char *)&s, 1)) && (s != EOFRAME)) {
+  while ((GP_OK <= gp_port_read(port, &s, 1)) && (s != EOFRAME)) {
     sum = sum + s;
     if(i > 0) {
       if(s == CESCAPE){
-        gp_port_read(port, (char *)&s, 1);
+        gp_port_read(port, &s, 1);
         if(0x20 & s)
           s = 0xDF & s;
         else
@@ -137,15 +115,16 @@ static int recvdata(GPPort *port, unsigned char *p, int len)
 char F1newstatus(GPPort *port, int verbose, char *return_buf)
 {
   unsigned char buf[34];
+  int i;
   char status_buf[1000]="";
   char tmp_buf[150]="";
-  int i;
-
   buf[0] = 0x03;
   buf[1] = 0x02;
   sendcommand(port,buf, 2);
   i = recvdata(port, buf, 33);
-  gp_log (GP_LOG_DEBUG, "F1newstatus", "Status: %02x%02x:%02x(len = %d)", buf[0], buf[1], buf[2], i);
+#ifdef DEBUG
+  fprintf(stderr,"Status: %02x%02x:%02x(len = %d)\n", buf[0], buf[1], buf[2], i);
+#endif
   if((buf[0] != 0x03) || (buf[1] != 0x02) ||(buf[2] != 0)){
     Abort(port);
     return(-1);
@@ -191,6 +170,7 @@ char F1newstatus(GPPort *port, int verbose, char *return_buf)
 
 int F1status(GPPort *port)
 {
+
   unsigned char buf[34];
   int i;
 
@@ -198,7 +178,9 @@ int F1status(GPPort *port)
   buf[1] = 0x02;
   sendcommand(port,buf, 2);
   i = recvdata(port, buf, 33);
-  gp_log (GP_LOG_DEBUG, "F1status", "Status: %02x%02x:%02x(len = %d)\n", buf[0], buf[1], buf[2], i);
+#ifdef DEBUG
+  fprintf(stderr,"Status: %02x%02x:%02x(len = %d)\n", buf[0], buf[1], buf[2], i);
+#endif
   if((buf[0] != 0x03) || (buf[1] != 0x02) ||(buf[2] != 0)){
     Abort(port);
     return(-1);
@@ -249,7 +231,7 @@ int F1fopen(GPPort *port, char *name)
   buf[1] = 0x0A;
   buf[2] = 0x00;
   buf[3] = 0x00;
-  snprintf((char*)&buf[4], sizeof(buf)-4, "%s", name);
+  snprintf(&buf[4], sizeof(buf)-4, "%s", name);
   len = strlen(name) + 5;
   sendcommand(port,buf, len);
   recvdata(port, buf, 6);
@@ -265,15 +247,16 @@ int F1fopen(GPPort *port, char *name)
 int F1fclose(GPPort*port)
 {
   unsigned char buf[4];
-  int i;
 
   buf[0] = 0x02;
   buf[1] = 0x0B;
   buf[2] = 0x00;
   buf[3] = 0x00;
   sendcommand(port,buf, 4);
-  i = recvdata(port, buf, 3);
-  gp_log (GP_LOG_DEBUG, "F1fclose", "Fclose: %02x%02x:%02x(len = %d)\n", buf[0], buf[1], buf[2], i);
+  recvdata(port, buf, 3);
+#ifdef DEBUG
+  fprintf(stderr,"Fclose: %02x%02x:%02x\n", buf[0], buf[1], buf[2]);
+#endif
   if((buf[0] != 0x02) || (buf[1] != 0x0B) || (buf[2] != 0x00)){
     fprintf(stderr,"F1fclose fail\n");
     Abort(port);
@@ -302,7 +285,7 @@ long F1fread(GPPort *port, unsigned char *data, long len)
   buf[6] = (len >> 8) & 0xff;
   buf[7] = 0xff & len;
   sendcommand(port,buf, 8);
-  gp_port_read(port, (char *)buf, 9);
+  gp_port_read(port, buf, 9);
   if((buf[2] != 0x02) || (buf[3] != 0x0C) || (buf[4] != 0x00)){
     Abort(port);
     fprintf(stderr,"F1fread fail\n");
@@ -311,13 +294,13 @@ long F1fread(GPPort *port, unsigned char *data, long len)
 
   len2 = buf[7] * 0x100 + buf[8]; /* data size */
   if(len2 == 0) {
-    gp_port_read(port, (char *)&s, 1); /* last block checksum */
-    gp_port_read(port, (char *)&s, 1); /* last block EOFL */
+    gp_port_read(port, &s, 1); /* last block checksum */
+    gp_port_read(port, &s, 1); /* last block EOFL */
     return(0);
   }
-  while((GP_OK <= gp_port_read(port, (char *)&s, 1)) && (s != EOFRAME)){
+  while((GP_OK <= gp_port_read(port, &s, 1)) && (s != EOFRAME)){
     if(s == CESCAPE){
-      gp_port_read(port, (char *)&s, 1);
+      gp_port_read(port, &s, 1);
       if(0x20 & s)
         s = 0xDF & s;
       else
@@ -405,7 +388,7 @@ long F1fwrite(GPPort *port,unsigned char *data, long len, unsigned char b) /* th
   address ++;
   if(address >7 ) address = 0;
 
-  gp_port_read(port, (char *)buf, 7);
+  gp_port_read(port, buf, 7);
   if((buf[2] != 0x02) || (buf[3] != 0x14) || (buf[4] != 0x00)){
     Abort(port);
     fprintf(stderr,"F1fwrite fail\n");
@@ -423,7 +406,7 @@ unsigned long F1finfo(GPPort *port,char *name)
 
   buf[0] = 0x02;
   buf[1] = 0x0F;
-  snprintf((char*)&buf[2], sizeof(buf)-2, "%s", name);
+  snprintf(&buf[2], sizeof(buf)-2, "%s", name);
   len = strlen(name) + 3;
 
   sendcommand(port,buf, len);
@@ -433,10 +416,19 @@ unsigned long F1finfo(GPPort *port,char *name)
     return(0);
   }
 
+#ifdef DEBUG
+  fprintf(stderr,"info:");
+  for(i = 0; i < len ; i++)
+    fprintf(stderr,"%02x ", buf[i]);
+  fprintf(stderr,"len = %d\n", len);
+#endif
+
   flen = buf[33] * 0x1000000 + buf[34] * 0x10000 +
     buf[35] * 0x100 + buf[36];
-  gp_log (GP_LOG_DEBUG , "F1finfo", "inf len = %ld %02x %02x %02x %02x\n", flen,
+#ifdef DEBUG
+  fprintf(stderr,"inf len = %ld %02x %02x %02x %02x\n", flen,
           buf[33], buf[34], buf[35], buf[36]);
+#endif
 
   if(buf[2] != 0) return(0);
   return(flen);
@@ -497,13 +489,15 @@ int F1ok(GPPort*port)
 
   buf[0] = 0x01;
   buf[1] = 0x01;
-  sprintf((char*)&buf[2],"SONY     MKY-1001         1.00");
+  sprintf(&buf[2],"SONY     MKY-1001         1.00");
 
   while(retrycount--){
     sendcommand(port,buf, 32);
     recvdata(port, buf, 32);
-    gp_log (GP_LOG_DEBUG, "F1ok", "OK:%02x%02x:%c%c%c%c\n", buf[0], buf[1],
+#ifdef DEBUG
+    fprintf(stderr,"OK:%02x%02x:%c%c%c%c\n", buf[0], buf[1],
             buf[3],buf[4],buf[5],buf[6]);
+#endif
     if((buf[0] != 0x01) || (buf[1] != 0x01) || (buf[2] != 0x00) ){
       Abort(port);
       F1reset(port);
@@ -523,8 +517,10 @@ F1reset(GPPort *port)
   buf[1] = 0x02;
   sendcommand(port,buf, 2);
   recvdata(port, buf, 3);
-  gp_log (GP_LOG_DEBUG, "F1reset", "Reset: %02x%02x:%02x\n", buf[0], buf[1], buf[2]);
-  if(!((buf[0] == 0x01 ) && (buf[1] == 0x02) && (buf[2] == 0x00)))
+#ifdef DEBUG
+  fprintf(stderr,"Reset: %02x%02x:%02x\n", buf[0], buf[1], buf[2]);
+#endif
+  if(!((buf[0] == 0x01 ) && (buf[1] == 0x02) && buf[2] == 0x00))
     goto retryreset;
   return (int) buf[2];          /*ok*/
 }

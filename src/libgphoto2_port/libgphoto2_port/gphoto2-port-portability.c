@@ -1,25 +1,5 @@
 /** \file
- * 
- * \author Copyright 2001 Lutz Mueller <lutz@users.sf.net>
- * \author Copyright 1999 Scott Fritzinger <scottf@unr.edu>
- *
- * \par License
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * \par
- * This library is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details. 
- *
- * \par
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * \brief Various portability functions.
  *
  * This file contains various portability functions that
  * make non UNIX (Windows) ports easier.
@@ -29,14 +9,12 @@
 #include <stdio.h>
 #include <gphoto2/gphoto2-port.h>
 #include <gphoto2/gphoto2-port-result.h>
-#include <gphoto2/gphoto2-port-portability.h>
 
 /* Windows Portability
    ------------------------------------------------------------------ */
 #ifdef WIN32
 
-
-void gp_port_win_convert_path (char *path) {
+void gp_port_win_convert_path (const char *path) {
 
         int x;
 
@@ -62,15 +40,7 @@ int gp_system_mkdir (const char *dirname) {
         return (GP_OK);
 }
 
-int gp_system_rmdir (const char *dirname) {
-
-        if (_rmdir(dirname) < 0)
-                return (GP_ERROR);
-        return (GP_OK);
-}
-
-
-gp_system_dir gp_system_opendir (const char *dirname) {
+GP_SYSTEM_DIR gp_system_opendir (const char *dirname) {
 
         GPPORTWINDIR *d;
         DWORD dr;
@@ -95,7 +65,7 @@ gp_system_dir gp_system_opendir (const char *dirname) {
         return (d);
 }
 
-gp_system_dirent gp_system_readdir (gp_system_dir d) {
+GP_SYSTEM_DIRENT gp_system_readdir (GP_SYSTEM_DIR d) {
 
         char dirn[1024];
 
@@ -130,12 +100,12 @@ gp_system_dirent gp_system_readdir (gp_system_dir d) {
         return (&(d->search));
 }
 
-const char *gp_system_filename (gp_system_dirent de) {
+const char *gp_system_filename (GP_SYSTEM_DIRENT de) {
 
         return (de->cFileName);
 }
 
-int gp_system_closedir (gp_system_dir d) {
+int gp_system_closedir (GP_SYSTEM_DIR d) {
         FindClose(d->handle);
         free(d);
         return (1);
@@ -178,7 +148,8 @@ int gp_system_is_dir (const char *dirname) {
  * \return a gphoto error code
  */
 int gp_system_mkdir (const char *dirname) {
-        if (mkdir(dirname, 0777)<0)
+
+        if (mkdir(dirname, 0700)<0)
                 return (GP_ERROR);
         return (GP_OK);
 }

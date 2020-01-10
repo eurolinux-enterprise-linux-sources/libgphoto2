@@ -18,8 +18,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 #define _POSIX_C_SOURCE 199309L
 
@@ -92,7 +92,7 @@ int barbie_exchange (GPPort *port, unsigned char *cmd, unsigned int cmd_size, un
 		if (resp[RESPONSE_BYTE] != '!')
 			return (1);
 		/* if busy, sleep 2 seconds */
-		sleep(2);
+		GP_SYSTEM_SLEEP(2000);
 	}
 	return (0);
 }

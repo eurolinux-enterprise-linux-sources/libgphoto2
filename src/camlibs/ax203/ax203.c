@@ -13,9 +13,8 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the 
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 #include "config.h"
 
@@ -26,9 +25,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <fcntl.h>
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 #include <gd.h>
 #endif
 
@@ -79,8 +79,6 @@ static const struct eeprom_info {
 	{ "MXIC MX25L4005A", 0xc21320c2,  524288, 1 },
 	{ "MXIC MX25L8005A", 0xc21420c2, 1048576, 1 },
 	{ "MXIC MX25L1605A", 0xc21520c2, 2097152, 1 },
-
-	{ "Nantronics N25S80", 0xd51430d5, 1048576, 1 },                                                                                                                                     
 
 	{ "PMC Pm25LV010", 0x007e9d7f, 524288, 0 },
 
@@ -219,8 +217,7 @@ ax203_get_checksum(Camera *camera, int address, int size)
 			      (char *)buf, 2);
 	if (ret < 0) return ret;
 
-	/*return be16atoh(buf);*/
-	return (buf[0] << 8) | buf[1];
+	return be16atoh(buf);
 }
 
 static int
@@ -258,8 +255,7 @@ ax3003_get_abfs_start(Camera *camera)
 			      (char *)buf, 2);
 	if (ret < 0) return ret;
 
-	return ((buf[0] << 8) | buf[1]) * 0x100;
-	/*return be16atoh(buf) * 0x100;*/
+	return be16atoh(buf) * 0x100;
 }
 
 int
@@ -304,7 +300,7 @@ ax203_eeprom_device_identification(Camera *camera, char *buf)
 {
 	char cmd = SPI_EEPROM_RDID;
 
-	return ax203_send_eeprom_cmd (camera, 0, &cmd, 1, buf, 64, 0);
+	return ax203_send_eeprom_cmd (camera, 0, &cmd, 1, buf, 4, 0);
 }
 
 static int
@@ -649,7 +645,6 @@ static int ax203_read_parameter_block(Camera *camera)
 		if (i < 0) return i;
 		switch (i) {
 		case 0:
-		case 1:
 			camera->pl->width  = 320;
 			camera->pl->height = 240;
 			break;
@@ -857,8 +852,7 @@ int ax203_read_v3_3_x_v3_4_x_fileinfo(Camera *camera, int idx,
 					AX203_ABFS_FILE_OFFSET (idx),
 			       buf, 2))
 
-	/*fileinfo->address = le16atoh (buf) << 8;*/
-	fileinfo->address = (buf[0] | (buf[1] << 8)) << 8;
+	fileinfo->address = le16atoh (buf) << 8;
 	fileinfo->size    = ax203_filesize (camera);
 	fileinfo->present = fileinfo->address? 1 : 0;
 
@@ -879,9 +873,7 @@ int ax203_write_v3_3_x_v3_4_x_fileinfo(Camera *camera, int idx,
 	if (!fileinfo->present)
 		fileinfo->address = 0;
 
-	/*htole16a(buf, fileinfo->address >> 8);*/
-	buf[0] = (fileinfo->address >> 8) & 0xff;
-	buf[1] = (fileinfo->address >>16) & 0xff;
+	htole16a(buf, fileinfo->address >> 8);
 	CHECK (ax203_write_mem (camera,
 				camera->pl->fs_start +
 					AX203_ABFS_FILE_OFFSET (idx),
@@ -936,11 +928,6 @@ int ax3003_read_v3_5_x_fileinfo(Camera *camera, int idx,
 			       camera->pl->fs_start +
 					AX3003_ABFS_FILE_OFFSET (idx),
 			       &raw, sizeof(raw)))
-
-	if (raw.address == 0xffff || raw.size == 0xffff) {
-		memset(fileinfo, 0, sizeof(*fileinfo));
-		return GP_OK;
-	}
 
 	fileinfo->present = raw.address && raw.size;
 	fileinfo->address = be16toh (raw.address) * 0x100;
@@ -1073,7 +1060,7 @@ ax203_file_present(Camera *camera, int idx)
 static int
 ax203_decode_image(Camera *camera, char *src, int src_size, int **dest)
 {
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 	int ret;
 	unsigned int x, y, width, height, row_skip = 0;
 	unsigned char *components[3];
@@ -1195,7 +1182,7 @@ ax203_decode_image(Camera *camera, char *src, int src_size, int **dest)
 static int
 ax203_encode_image(Camera *camera, int **src, char *dest, int dest_size)
 {
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 	int size = ax203_filesize (camera);
 #ifdef HAVE_LIBJPEG
 	int x, y;
@@ -1220,14 +1207,10 @@ ax203_encode_image(Camera *camera, int **src, char *dest, int dest_size)
 					camera->pl->height);
 		return size;
 	case AX206_COMPRESSION_JPEG:
-#if defined(HAVE_LIBGD) && defined(HAVE_LIBJPEG)
 		return ax206_compress_jpeg (camera, src,
 					    (uint8_t *)dest, dest_size,
 					    camera->pl->width,
 					    camera->pl->height);
-#else
-		return GP_ERROR_NOT_SUPPORTED;
-#endif
 	case AX3003_COMPRESSION_JPEG:
 #ifdef HAVE_LIBJPEG
 		cinfo.err = jpeg_std_error (&jcerr);
@@ -1762,11 +1745,7 @@ ax203_open_device(Camera *camera)
 	/* Not sure if this is necessary, but the windows software does it */
 	CHECK (ax203_eeprom_release_from_deep_powerdown (camera))
 	CHECK (ax203_eeprom_device_identification (camera, buf))
-	/*id = le32atoh((uint8_t *)buf);*/
-	id =	 (uint8_t)buf[0]	|
-		((uint8_t)buf[1] << 8)	|
-		((uint8_t)buf[2] << 16)	|
-		((uint8_t)buf[3] << 24);
+	id = le32atoh((uint8_t *)buf);
 	for (i = 0; ax203_eeprom_info[i].name; i++) {
 		if (ax203_eeprom_info[i].id == id)
 			break;

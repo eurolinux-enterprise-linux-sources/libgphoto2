@@ -1,9 +1,9 @@
 /*
-	$Id$
+	$Id: dc.h 9336 2006-10-15 00:46:42Z hfiguiere $
 
-	Copyright 2000 Mariusz Zynel <mariusz@mizar.org> (gPhoto port)
-	Copyright 2000 Fredrik Roubert <roubert@df.lth.se> (idea)
-	Copyright 1999 Galen Brooks <galen@nine.com> (DC1580 code)
+	Copyright © 2000 Mariusz Zynel <mariusz@mizar.org> (gPhoto port)
+	Copyright © 2000 Fredrik Roubert <roubert@df.lth.se> (idea)
+	Copyright © 1999 Galen Brooks <galen@nine.com> (DC1580 code)
 
 	This file is part of the gPhoto project and may only be used,  modified,
 	and distributed under the terms of the gPhoto project license,  COPYING.

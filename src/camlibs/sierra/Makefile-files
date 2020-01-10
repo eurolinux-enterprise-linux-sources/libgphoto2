@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += sierra/PROTOCOL sierra/ChangeLog sierra/MC-EU1-Protocol.txt
 
 EXTRA_LTLIBRARIES += sierra.la

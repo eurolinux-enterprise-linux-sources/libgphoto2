@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 
@@ -31,17 +31,11 @@
 #define PTP_MTP_ZEN_BROKEN_HEADER	DEVICE_FLAG_IGNORE_HEADER_ERRORS
 #define PTP_NO_CAPTURE_COMPLETE		DEVICE_FLAG_NO_CAPTURE_COMPLETE
 #define PTP_OLYMPUS_XML			DEVICE_FLAG_OLYMPUS_XML_WRAPPED
-#define PTP_NIKON_1			DEVICE_FLAG_NIKON_1
-#define PTP_DONT_CLOSE_SESSION		DEVICE_FLAG_DONT_CLOSE_SESSION
 
 #define DELETE_SENDS_EVENT(x) \
   ((x)->device_flags & (DEVICE_FLAG_DELETE_SENDS_EVENT))
 #define NIKON_BROKEN_CAP(x) \
   ((x)->device_flags & (DEVICE_FLAG_NIKON_BROKEN_CAPTURE))
-#define NIKON_1(x) \
-  ((x)->device_flags & (DEVICE_FLAG_NIKON_1))
-#define DONT_CLOSE_SESSION(x) \
-  ((x)->device_flags & (DEVICE_FLAG_DONT_CLOSE_SESSION))
 #define NO_CAPTURE_COMPLETE(x) \
   ((x)->device_flags & (DEVICE_FLAG_NO_CAPTURE_COMPLETE))
 #define MTP_ZEN_BROKEN_HEADER(x) \

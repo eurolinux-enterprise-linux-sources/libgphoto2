@@ -17,8 +17,8 @@
  * \par
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 #include "config.h"
 #include <gphoto2/gphoto2-widget.h>
@@ -28,6 +28,8 @@
 
 #include <gphoto2/gphoto2-result.h>
 #include <gphoto2/gphoto2-port-log.h>
+
+#define CHECK_NULL(r)        {if (!(r)) return (GP_ERROR_BAD_PARAMETERS);}
 
 /**
  * CameraWidget:
@@ -95,9 +97,10 @@ gp_widget_new (CameraWidgetType type, const char *label,
 {
 	static int i = 0;
 
-	C_PARAMS (label && widget);
+	CHECK_NULL (label && widget);
 
-	C_MEM (*widget = calloc (1, sizeof (CameraWidget)));
+	*widget = (CameraWidget*) malloc (sizeof (CameraWidget));
+	memset (*widget, 0, sizeof (CameraWidget));
 
 	(*widget)->type = type;
 	strcpy ((*widget)->label, label);
@@ -132,7 +135,7 @@ int
 gp_widget_free (CameraWidget *widget)
 {
 	int x;
-	C_PARAMS (widget);
+	CHECK_NULL (widget);
 
 	/* Free children recursively */
 	if ((widget->type == GP_WIDGET_WINDOW) ||
@@ -144,7 +147,9 @@ gp_widget_free (CameraWidget *widget)
 	for (x = 0; x < widget->choice_count; x++)
 		free (widget->choice[x]);
 	free (widget->choice);
-	free (widget->value_string);
+
+        if (widget->value_string)
+		free (widget->value_string);
 	free (widget);
 	return (GP_OK);
 }
@@ -159,7 +164,7 @@ gp_widget_free (CameraWidget *widget)
 int
 gp_widget_ref (CameraWidget *widget) 
 {
-	C_PARAMS (widget);
+	CHECK_NULL (widget);
 
 	widget->ref_count += 1;
 
@@ -176,7 +181,7 @@ gp_widget_ref (CameraWidget *widget)
 int
 gp_widget_unref (CameraWidget *widget) 
 {
-	C_PARAMS (widget);
+	CHECK_NULL (widget);
 
 	widget->ref_count -= 1;
 
@@ -197,7 +202,7 @@ gp_widget_unref (CameraWidget *widget)
 int
 gp_widget_get_info (CameraWidget *widget, const char **info)
 {
-	C_PARAMS (widget && info);
+	CHECK_NULL (widget && info);
 
 	*info = widget->info;
 	return (GP_OK);
@@ -215,7 +220,7 @@ gp_widget_get_info (CameraWidget *widget, const char **info)
 int
 gp_widget_set_info (CameraWidget *widget, const char *info)
 {
-	C_PARAMS (widget && info);
+	CHECK_NULL (widget && info);
 
 	strcpy (widget->info, info);
 	return (GP_OK);
@@ -232,7 +237,7 @@ gp_widget_set_info (CameraWidget *widget, const char *info)
 int
 gp_widget_get_name (CameraWidget *widget, const char **name)
 {
-	C_PARAMS (widget && name);
+	CHECK_NULL (widget && name);
 
 	*name = widget->name;
 	return (GP_OK);
@@ -249,7 +254,7 @@ gp_widget_get_name (CameraWidget *widget, const char **name)
 int
 gp_widget_set_name (CameraWidget *widget, const char *name)
 {
-	C_PARAMS (widget && name);
+	CHECK_NULL (widget && name);
 
 	strcpy (widget->name, name);
 	return (GP_OK);
@@ -268,7 +273,7 @@ gp_widget_set_name (CameraWidget *widget, const char *name)
 int
 gp_widget_get_id (CameraWidget *widget, int *id)
 {
-	C_PARAMS (widget && id);
+	CHECK_NULL (widget && id);
 
 	*id = widget->id;
 	return (GP_OK);
@@ -288,7 +293,7 @@ gp_widget_get_id (CameraWidget *widget, int *id)
 int
 gp_widget_set_changed (CameraWidget *widget, int changed)
 {
-	C_PARAMS (widget);
+	CHECK_NULL (widget);
 
 	widget->changed = changed;
 	return (GP_OK);
@@ -309,7 +314,7 @@ gp_widget_set_changed (CameraWidget *widget, int changed)
 int
 gp_widget_set_readonly (CameraWidget *widget, int readonly)
 {
-	C_PARAMS (widget);
+	CHECK_NULL (widget);
 
 	widget->readonly = readonly;
 	return (GP_OK);
@@ -326,7 +331,7 @@ gp_widget_set_readonly (CameraWidget *widget, int readonly)
 int
 gp_widget_get_readonly (CameraWidget *widget, int *readonly) 
 {
-	C_PARAMS (widget && readonly);
+	CHECK_NULL (widget && readonly);
 
 	*readonly = widget->readonly;
 	return (GP_OK);
@@ -343,7 +348,7 @@ gp_widget_get_readonly (CameraWidget *widget, int *readonly)
 int
 gp_widget_get_type (CameraWidget *widget, CameraWidgetType *type) 
 {
-	C_PARAMS (widget && type);
+	CHECK_NULL (widget && type);
 
 	*type = widget->type;
 	return (GP_OK);
@@ -360,7 +365,7 @@ gp_widget_get_type (CameraWidget *widget, CameraWidgetType *type)
 int
 gp_widget_get_label (CameraWidget *widget, const char **label) 
 {
-	C_PARAMS (widget && label);
+	CHECK_NULL (widget && label);
 
 	*label = widget->label;
 	return (GP_OK);
@@ -383,7 +388,7 @@ gp_widget_get_label (CameraWidget *widget, const char **label)
 int
 gp_widget_set_value (CameraWidget *widget, const void *value) 
 {
-	C_PARAMS (widget && value);
+	CHECK_NULL (widget && value);
 
         switch (widget->type) {
 	case GP_WIDGET_BUTTON:
@@ -392,9 +397,9 @@ gp_widget_set_value (CameraWidget *widget, const void *value)
 	case GP_WIDGET_MENU:
 	case GP_WIDGET_RADIO:
         case GP_WIDGET_TEXT:
-		GP_LOG_D ("Setting value of widget '%s' to '%s'...",
-			widget->label, (char*) value);
-		if (widget->value_string) {
+		gp_log (GP_LOG_DEBUG, "gphoto2-widget", "Setting value of widget "
+			"'%s' to '%s'...", widget->label, (char*) value);
+			if (widget->value_string) {
                 	if (strcmp (widget->value_string, (char*) value))
                     		widget->changed = 1;
                 	free (widget->value_string);
@@ -433,7 +438,7 @@ gp_widget_set_value (CameraWidget *widget, const void *value)
 int
 gp_widget_get_value (CameraWidget *widget, void *value) 
 {
-	C_PARAMS (widget && value);
+	CHECK_NULL (widget && value);
 
         switch (widget->type) {
 	case GP_WIDGET_BUTTON:
@@ -469,13 +474,20 @@ gp_widget_get_value (CameraWidget *widget, void *value)
 int
 gp_widget_append (CameraWidget *widget, CameraWidget *child) 
 {
-	C_PARAMS (widget && child);
+	CameraWidget **newlist;
+	CHECK_NULL (widget && child);
 
 	/* Return if they can't have any children */
-        C_PARAMS ((widget->type == GP_WIDGET_WINDOW) ||
-                  (widget->type == GP_WIDGET_SECTION));
+        if ((widget->type != GP_WIDGET_WINDOW) && 
+	    (widget->type != GP_WIDGET_SECTION))
+		return (GP_ERROR_BAD_PARAMETERS);
 
-	C_MEM (widget->children = realloc(widget->children, sizeof(CameraWidget*)*(widget->children_count+1)));
+	if (widget->children_count)
+		newlist = realloc(widget->children,sizeof(CameraWidget*)*(widget->children_count+1));
+	else
+		newlist = malloc(sizeof(CameraWidget*));
+	if (!newlist) return (GP_ERROR_NO_MEMORY);
+	widget->children = newlist;
 	widget->children[widget->children_count] = child;
 	widget->children_count += 1;
 	child->parent = widget;
@@ -496,14 +508,21 @@ int
 gp_widget_prepend (CameraWidget *widget, CameraWidget *child) 
 {
 	int x;
+	CameraWidget**	newlist;
 
-	C_PARAMS (widget && child);
+	CHECK_NULL (widget && child);
 
 	/* Return if they can't have any children */
-	C_PARAMS ((widget->type == GP_WIDGET_WINDOW) ||
-		  (widget->type == GP_WIDGET_SECTION));
+	if ((widget->type != GP_WIDGET_WINDOW) && 
+	    (widget->type != GP_WIDGET_SECTION))
+		return (GP_ERROR_BAD_PARAMETERS);
 
-	C_MEM (widget->children = realloc(widget->children, sizeof(CameraWidget*)*(widget->children_count+1)));
+	if (widget->children_count)
+		newlist = realloc(widget->children,sizeof(CameraWidget*)*(widget->children_count+1));
+	else
+		newlist = malloc(sizeof(CameraWidget*));
+	if (!newlist) return (GP_ERROR_NO_MEMORY);
+	widget->children = newlist;
 
 	/* Shift down 1 */
 	for (x = widget->children_count; x > 0; x--)
@@ -528,7 +547,7 @@ gp_widget_prepend (CameraWidget *widget, CameraWidget *child)
 int
 gp_widget_count_children (CameraWidget *widget) 
 {
-	C_PARAMS (widget);
+	CHECK_NULL (widget);
 
 	return (widget->children_count);
 }
@@ -546,8 +565,10 @@ int
 gp_widget_get_child (CameraWidget *widget, int child_number, 
 		     CameraWidget **child) 
 {
-	C_PARAMS (widget && child);
-	C_PARAMS (child_number < widget->children_count);
+	CHECK_NULL (widget && child);
+
+	if (child_number >= widget->children_count)
+		return (GP_ERROR_BAD_PARAMETERS);
 
 	*child = widget->children[child_number];
 	return (GP_OK);
@@ -568,7 +589,7 @@ gp_widget_get_child_by_label (CameraWidget *widget, const char *label,
 {
 	int x;
 
-	C_PARAMS (widget && label && child);
+	CHECK_NULL (widget && label && child);
 
 	if (strcmp (widget->label, label) == 0) {
 		*child = widget;
@@ -604,7 +625,7 @@ gp_widget_get_child_by_id (CameraWidget *widget, int id, CameraWidget **child)
 {
 	int x;
 
-	C_PARAMS (widget && child);
+	CHECK_NULL (widget && child);
 
 	if (widget->id == id) {
 		*child = widget;
@@ -640,7 +661,7 @@ gp_widget_get_child_by_name (CameraWidget *widget, const char *name,
 {
 	int x;
 
-	C_PARAMS (widget && child);
+	CHECK_NULL (widget && child);
 
 	if (!strcmp (widget->name, name)) {
 		*child = widget;
@@ -673,7 +694,7 @@ gp_widget_get_child_by_name (CameraWidget *widget, const char *name,
 int
 gp_widget_get_parent (CameraWidget *widget, CameraWidget **parent)
 {
-	C_PARAMS (widget && parent);
+	CHECK_NULL (widget && parent);
 
 	*parent = widget->parent;
 
@@ -691,7 +712,7 @@ gp_widget_get_parent (CameraWidget *widget, CameraWidget **parent)
 int
 gp_widget_get_root (CameraWidget *widget, CameraWidget **root) 
 {
-	C_PARAMS (widget && root);
+	CHECK_NULL (widget && root);
 
 	if (widget->parent) 
 		return (gp_widget_get_root (widget->parent, root));
@@ -714,8 +735,10 @@ gp_widget_get_root (CameraWidget *widget, CameraWidget **root)
 int
 gp_widget_set_range (CameraWidget *range, float min, float max, float increment)
 {
-	C_PARAMS (range);
-	C_PARAMS (range->type == GP_WIDGET_RANGE);
+	CHECK_NULL (range);
+	
+	if (range->type != GP_WIDGET_RANGE)
+		return (GP_ERROR_BAD_PARAMETERS);
 
 	range->min = min;
 	range->max = max;
@@ -738,8 +761,9 @@ int
 gp_widget_get_range (CameraWidget *range, float *min, float *max, 
 		     float *increment) 
 {
-	C_PARAMS (range && min && max && increment);
-	C_PARAMS (range->type == GP_WIDGET_RANGE);
+	CHECK_NULL (range && min && max && increment);
+	if (range->type != GP_WIDGET_RANGE)
+		return (GP_ERROR_BAD_PARAMETERS);
 
 	*min = range->min;
 	*max = range->max;
@@ -759,11 +783,20 @@ gp_widget_get_range (CameraWidget *range, float *min, float *max,
 int
 gp_widget_add_choice (CameraWidget *widget, const char *choice) 
 {
-	C_PARAMS (widget && choice);
-	C_PARAMS ((widget->type == GP_WIDGET_RADIO) ||
-		  (widget->type == GP_WIDGET_MENU));
+	char **choices;
+	CHECK_NULL (widget && choice);
+	if ((widget->type != GP_WIDGET_RADIO) &&
+	    (widget->type != GP_WIDGET_MENU))
+		return (GP_ERROR_BAD_PARAMETERS);
 
-	C_MEM (widget->choice = realloc (widget->choice, sizeof(char*)*(widget->choice_count+1)));
+	if (widget->choice_count) {
+		choices = realloc (widget->choice, sizeof(char*)*(widget->choice_count+1));
+	} else {
+		choices = malloc (sizeof(char*));
+	}
+	if (!choices) return (GP_ERROR_NO_MEMORY);
+
+	widget->choice = choices;
 	widget->choice[widget->choice_count] = strdup(choice);
 	widget->choice_count += 1;
 	return (GP_OK);
@@ -779,9 +812,10 @@ gp_widget_add_choice (CameraWidget *widget, const char *choice)
 int
 gp_widget_count_choices (CameraWidget *widget) 
 {
-	C_PARAMS (widget);
-	C_PARAMS ((widget->type == GP_WIDGET_RADIO) ||
-		  (widget->type == GP_WIDGET_MENU));
+	CHECK_NULL (widget);
+	if ((widget->type != GP_WIDGET_RADIO) &&
+	    (widget->type != GP_WIDGET_MENU))
+		return (GP_ERROR_BAD_PARAMETERS);
 
 	return (widget->choice_count);
 }
@@ -799,10 +833,13 @@ int
 gp_widget_get_choice (CameraWidget *widget, int choice_number, 
 		      const char **choice) 
 {
-	C_PARAMS (widget && choice);
-	C_PARAMS ((widget->type == GP_WIDGET_RADIO) ||
-		  (widget->type == GP_WIDGET_MENU));
-	C_PARAMS (choice_number < widget->choice_count);
+	CHECK_NULL (widget && choice);
+	if ((widget->type != GP_WIDGET_RADIO) &&
+	    (widget->type != GP_WIDGET_MENU))
+		return (GP_ERROR_BAD_PARAMETERS);
+
+	if (choice_number >= widget->choice_count)
+		return (GP_ERROR_BAD_PARAMETERS);
 
 	*choice = widget->choice[choice_number];
 	return (GP_OK);
@@ -815,14 +852,18 @@ gp_widget_get_choice (CameraWidget *widget, int choice_number,
  * @return a gphoto2 error code or changed flag.
  *
  * Returns 1 if the state of the #CameraWidget has been changed or 0 if not.
- *
- * Note: this formerly cleared the changed state. It no longer does with 2.5.11.
+ * In addition, it resets the changed flag to 0.
  *
  **/
 int
 gp_widget_changed (CameraWidget *widget) 
 {
-	C_PARAMS (widget);
+        int val;
 
-        return widget->changed;
+	CHECK_NULL (widget);
+
+        val = widget->changed;
+        widget->changed = 0;
+
+        return (val);
 }

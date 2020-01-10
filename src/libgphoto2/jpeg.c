@@ -16,8 +16,8 @@
  * \par
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -94,7 +94,7 @@ void gpi_jpeg_chunk_print(chunk *mychunk)
 /*    printf("Size=%i\n", mychunk->size); */
     nullpointerabortvoid(mychunk, "Chunk");
     for (x=0; x<mychunk->size; x++)
-        printf("%hhX ", mychunk->data[x]);
+        printf("%hX ", mychunk->data[x]);
     printf("\n");
 }
 
@@ -128,9 +128,9 @@ char gpi_jpeg_findactivemarker(char *id, int *location, chunk *picture)
     return 0;
 }
 
-char *gpi_jpeg_markername(unsigned int c)
+char *gpi_jpeg_markername(int c)
 {
-    unsigned int x;
+    int x;
 /*    printf("searching for marker %X in list\n",c); */
 /*    printf("%i\n", sizeof(markers)); */
     for (x=0; x<countof(JPEG_MARKERS); x++)
@@ -291,7 +291,7 @@ void gpi_jpeg_print_quantization_table(jpeg_quantization_table *table)
 }
 
 
-chunk *gpi_jpeg_make_quantization(const jpeg_quantization_table *table, char number)
+chunk *gpi_jpeg_make_quantization(jpeg_quantization_table *table, char number)
 {
     chunk *temp;
     char x,y,z,c;
@@ -340,7 +340,7 @@ jpeg_quantization_table *gpi_jpeg_quantization2table(chunk *qmarker)
 jpeg *gpi_jpeg_header(int width, int height,
     char vh1, char vh2, char vh3,
     char q1, char q2, char q3,
-    const jpeg_quantization_table *quant1, const jpeg_quantization_table *quant2,
+    jpeg_quantization_table *quant1, jpeg_quantization_table *quant2,
     char huffset1, char huffset2, char huffset3,
     chunk *huff1, chunk *huff2, chunk *huff3, chunk *huff4)
 {

@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += jd11/jd11.html jd11/ChangeLog
 
 EXTRA_LTLIBRARIES += jd11.la

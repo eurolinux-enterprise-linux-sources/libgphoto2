@@ -14,9 +14,8 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the 
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #ifdef STANDALONE_MAIN
@@ -32,7 +31,7 @@
 
 #include "config.h"
 
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 #include <gd.h>
 #endif
 #include <stdlib.h>
@@ -52,7 +51,7 @@ static const int corr_tables[4][8] = {
 	{ 0,  4,  8, 12, -16, -12,  -8, -4 },
 };
 
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 /* With in a compressed 4x4 block, the data is stored 4 component values at a
    time, compressed into 2 bytes, the first 5 bits are a starting value,
    then 2 bits encoding which correction/delta table to use and

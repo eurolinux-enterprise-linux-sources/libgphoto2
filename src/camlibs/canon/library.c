@@ -3,10 +3,10 @@
  * library.c
  *
  *   Canon Camera library for the gphoto project,
- *   Copyright 1999 Wolfgang G. Reissnegger
+ *   © 1999 Wolfgang G. Reissnegger
  *   Developed for the Canon PowerShot A50
  *   Additions for PowerShot A5 by Ole W. Saastad
- *   Copyright 2000: Other additions  by Edouard Lafargue, Philippe Marzouk
+ *   © 2000: Other additions  by Edouard Lafargue, Philippe Marzouk
  *
  * This file contains all the "glue code" required to use the canon
  * driver with libgphoto2.
@@ -20,16 +20,18 @@
  *
  ****************************************************************************/
 
-#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
 
 #include "config.h"
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <termios.h>
 #include <time.h>
 #include <ctype.h>
 
@@ -404,7 +406,14 @@ camera_abilities (CameraAbilitiesList *list)
 	for (i = 0; models[i].id_str; i++) {
 		memset (&a, 0, sizeof (a));
 
-		a.status = GP_DRIVER_STATUS_PRODUCTION;
+		/* For now, flag EOS 20D as experimental. */
+		if ((UPLOAD_BOOL || (models[i].usb_capture_support == CAP_EXP)
+		     || models[i].model == CANON_CLASS_6) && 
+		    (models[i].usb_vendor && models[i].usb_product)) {
+			a.status = GP_DRIVER_STATUS_EXPERIMENTAL;
+		} else {
+			a.status = GP_DRIVER_STATUS_PRODUCTION;
+		}
 
 		strcpy (a.model, models[i].id_str);
 		a.port = 0;
@@ -778,7 +787,6 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 			ret = canon_int_get_file (camera, canon_path, &data, &datalen,
 						  context);
 			if (ret == GP_OK) {
-				/* 0 also marks image as downloaded */
 				uint8_t attr = 0;
 
 				/* This should cover all attribute
@@ -788,6 +796,8 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 				CameraFileInfo info;
 
 				gp_filesystem_get_info (fs, folder, filename, &info, context);
+				if (info.file.status == GP_FILE_STATUS_NOT_DOWNLOADED)
+					attr &= ~CANON_ATTR_DOWNLOADED;
 				if ((info.file.permissions & GP_FILE_PERM_DELETE) == 0)
 					attr |= CANON_ATTR_WRITE_PROTECTED;
 				canon_int_set_file_attributes (camera, filename,
@@ -948,7 +958,9 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 			break;
 #endif /* HAVE_LIBEXIF */
 		default:
-			free (data);
+			/* this case should've been caught above anyway */
+			if (data)
+				free (data);
 			data = NULL;
 			return (GP_ERROR_NOT_SUPPORTED);
 	}
@@ -1708,17 +1720,16 @@ camera_get_config (Camera *camera, CameraWidget **window, GPContext *context)
 
 
 
-	/* DSLRs have only "Manual" Zoom */
-        if ( camera->pl->md->id_str && !strstr(camera->pl->md->id_str,"EOS") && !strstr(camera->pl->md->id_str,"Rebel")) {
-		/* Zoom level */
-		gp_widget_new (GP_WIDGET_RANGE, _("Zoom"), &t);
-		gp_widget_set_name (t, "zoom");
-		canon_int_get_zoom(camera, &zoomVal, &zoomMax, context);
-		gp_widget_set_range (t, 0, zoomMax, 1);
-		zoom = zoomVal;
-		gp_widget_set_value (t, &zoom);
-		gp_widget_append (section, t);
-	}
+	/* Zoom level */
+	gp_widget_new (GP_WIDGET_RANGE, _("Zoom"), &t);
+	gp_widget_set_name (t, "zoom");
+	canon_int_get_zoom(camera, &zoomVal, &zoomMax, context);
+	gp_widget_set_range (t, 0, zoomMax, 1);
+	zoom = zoomVal;
+	gp_widget_set_value (t, &zoom);
+	gp_widget_append (section, t);
+
+
 
 	/* Aperture */
 	gp_widget_new (GP_WIDGET_MENU, _("Aperture"), &t);
@@ -1987,7 +1998,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Owner Name"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2001,7 +2011,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Capture Size Class"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 
 		i = 0;
@@ -2028,7 +2037,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("ISO Speed"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2058,7 +2066,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Shooting mode"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2067,7 +2074,7 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 			/* Map the menu option setting to the camera binary value */
 			i = 0;
 			while (shootingModeStateArray[i].label) {
-				if (strcmp (_(shootingModeStateArray[i].label), wvalue) == 0) {
+				if (strcmp (shootingModeStateArray[i].label, wvalue) == 0) {
 					shooting_mode = shootingModeStateArray[i].value;
 					break;
 				}
@@ -2088,7 +2095,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Shutter Speed"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2117,7 +2123,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Aperture"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2126,7 +2131,7 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 			/* Map the menu option setting to the camera binary value */
 			i = 0;
 			while (apertureStateArray[i].label) {
-				if (strcmp (_(apertureStateArray[i].label), wvalue) == 0) {
+				if (strcmp (apertureStateArray[i].label, wvalue) == 0) {
 					aperture = apertureStateArray[i].value;
 					break;
 				}
@@ -2146,8 +2151,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 	gp_widget_get_child_by_label (window, _("Exposure Compensation"), &w);
 	if (gp_widget_changed (w)) {
 		unsigned char expbias;
-
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2156,7 +2159,7 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 			/* Map the menu option setting to the camera binary value */
 			i = 0;
 			while (exposureBiasStateArray[i].label) {
-				if (strcmp (_(exposureBiasStateArray[i].label), wvalue) == 0) {
+				if (strcmp (exposureBiasStateArray[i].label, wvalue) == 0) {
 					expbias = exposureBiasStateArray[i].value;
 					break;
 				}
@@ -2176,7 +2179,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Image Format"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2185,7 +2187,7 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 			/* Map the menu option setting to the camera binary value */
 			i = 0;
 			while (imageFormatStateArray[i].label) {
-				if (strcmp (_(imageFormatStateArray[i].label), wvalue) == 0)
+				if (strcmp (imageFormatStateArray[i].label, wvalue) == 0)
 					break;
 				
 				i++;
@@ -2205,7 +2207,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Focus Mode"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2214,7 +2215,7 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 			/* Map the menu option setting to the camera binary value */
 			i = 0;
 			while (focusModeStateArray[i].label) {
-				if (strcmp (_(focusModeStateArray[i].label), wvalue) == 0) {
+				if (strcmp (focusModeStateArray[i].label, wvalue) == 0) {
 					focus_mode = focusModeStateArray[i].value;
 					break;
 				}
@@ -2235,7 +2236,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 	/* Beep */
 	gp_widget_get_child_by_label (window, _("Beep"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2263,30 +2263,25 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 	}
 
 
-	/* DSLRs have only "Manual" Zoom */
-        if ( camera->pl->md->id_str && !strstr(camera->pl->md->id_str,"EOS") && !strstr(camera->pl->md->id_str,"Rebel")) {
-		/* Zoom */
-		gp_widget_get_child_by_label (window, _("Zoom"), &w);
-		if (gp_widget_changed (w)) {
-			float zoom;
+	/* Zoom */
+	gp_widget_get_child_by_label (window, _("Zoom"), &w);
+	if (gp_widget_changed (w)) {
+		float zoom;
+		gp_widget_get_value (w, &zoom);
+		if (!check_readiness (camera, context)) {
+			gp_context_status (context, _("Camera unavailable"));
+		} else {
+				if (canon_int_set_zoom (camera, zoom, context) == GP_OK)
+					gp_context_status (context, _("Zoom level changed"));
+				else
+					gp_context_status (context, _("Could not change zoom level"));
+			}		
+		}
 
-	        	gp_widget_set_changed (w, 0);
-			gp_widget_get_value (w, &zoom);
-			if (!check_readiness (camera, context)) {
-				gp_context_status (context, _("Camera unavailable"));
-			} else {
-					if (canon_int_set_zoom (camera, zoom, context) == GP_OK)
-						gp_context_status (context, _("Zoom level changed"));
-					else
-						gp_context_status (context, _("Could not change zoom level"));
-				}		
-			}
-	}
 
 	/* Aperture */
 	gp_widget_get_child_by_label (window, _("Aperture"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2316,7 +2311,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 	/* Flash mode */
 	gp_widget_get_child_by_label (window, _("Flash Mode"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2346,7 +2340,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Synchronize camera date and time with PC"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (!check_readiness (camera, context)) {
 			gp_context_status (context, _("Camera unavailable"));
@@ -2362,7 +2355,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 	gp_widget_get_child_by_label (window, _("List all files"), &w);
 	if (gp_widget_changed (w)) {
 		/* XXXXX mark CameraFS as dirty */
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &val);
 		camera->pl->list_all_files = val;
 		sprintf (str, "%d", val);
@@ -2375,7 +2367,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 #ifdef CANON_EXPERIMENTAL_UPLOAD
 	gp_widget_get_child_by_label (window, _("Keep filename on upload"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &camera->pl->upload_keep_filename);
 		GP_DEBUG ("New config value for \"Keep filename on upload\": %i",
 			  camera->pl->upload_keep_filename);
@@ -2549,9 +2540,10 @@ camera_init (Camera *camera, GPContext *context)
 
 	/* Set up the CameraFilesystem */
 	gp_filesystem_set_funcs (camera->fs, &fsfuncs, camera);
-	camera->pl = calloc (1, sizeof (CameraPrivateLibrary));
+	camera->pl = malloc (sizeof (CameraPrivateLibrary));
 	if (!camera->pl)
-		return GP_ERROR_NO_MEMORY;
+		return (GP_ERROR_NO_MEMORY);
+	memset (camera->pl, 0, sizeof (CameraPrivateLibrary));
 	camera->pl->first_init = 1;
 	camera->pl->seq_tx = 1;
 	camera->pl->seq_rx = 1;

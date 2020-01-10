@@ -1,7 +1,7 @@
 /* test-camera-list.c
  *
- * Copyright 2001 Lutz Mueller <lutz@users.sf.net>
- * Copyright 2005 Hans Ulrich Niedermann <gp@n-dimensional.de>
+ * Copyright © 2001 Lutz Müller <lutz@users.sf.net>
+ * Copyright © 2005 Hans Ulrich Niedermann <gp@n-dimensional.de>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,8 +15,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 #include "config.h"
 
@@ -183,14 +183,13 @@ main (int argc, char *argv[])
 	int i;
 	int count;
 	const char *fmt_str = NULL;
-	char lastmodel[200];
-	int logid = -1;
 
 	parse_command_line (argc, argv);
 
 	if (do_debug) {
 		gettimeofday (&glob_tv_zero, NULL);
-		CHECK (logid = gp_log_add_func (GP_LOG_ALL, debug_func, NULL));
+		CHECK (gp_log_add_func (GP_LOG_ALL, debug_func, NULL));
+		
 		gp_log (GP_LOG_DEBUG, "main", "test-camera-list start");
 	}
 
@@ -245,7 +244,6 @@ main (int argc, char *argv[])
 		break;
 	}
 
-	strcpy(lastmodel,"xxx");
 	/* For each camera in the list, add a text snippet to the 
 	 * output file. */
 	for (i = 0; i < count; i++) {
@@ -253,12 +251,6 @@ main (int argc, char *argv[])
 		const char *camlib_basename;
 		CHECK (gp_abilities_list_get_abilities (al, i, &abilities));
 		camlib_basename = path_basename(abilities.library);
-
-		if (!strcmp(lastmodel, abilities.model)) {
-			fprintf(stderr,"Duplicated model name in camera list: %s\n", lastmodel);
-			exit(1);
-		}
-		strcpy(lastmodel,abilities.model);
 
 		switch (format) {
 		case FMT_HEADED_TEXT:
@@ -309,7 +301,6 @@ main (int argc, char *argv[])
 	}
 	
 	CHECK (gp_abilities_list_free (al));
-	gp_log_remove_func (logid);
 	return (0);
 }
 

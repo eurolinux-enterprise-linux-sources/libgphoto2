@@ -1,6 +1,6 @@
 dnl Process this file with autoreconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT([libgphoto2 port access library], [0.12.0], [gphoto-devel@lists.sourceforge.net], [libgphoto2_port])
+AC_INIT([libgphoto2 port access library], [0.10.0], [gphoto-devel@lists.sourceforge.net], [libgphoto2_port])
 AC_CONFIG_SRCDIR([libgphoto2_port/gphoto2-port-version.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([auto-m4])
@@ -12,7 +12,7 @@ dnl The generated Makefile rule fails to remove the absolute part at
 dnl the beginning of the /path/to/buildroot/PACKAGE-VERSION/foo/bar
 dnl before determining the string length. However, the only relevant
 dnl string to determine the length of would be PACKAGE-VERSION/foo/bar
-AM_INIT_AUTOMAKE([-Wall gnu 1.9 dist-bzip2 check-news subdir-objects])
+AM_INIT_AUTOMAKE([-Wall gnu 1.9 dist-bzip2 check-news])
 
 AC_LANG(C)
 
@@ -47,9 +47,9 @@ dnl A:R:C=7:0:7 libgphoto2_port-0.7.0 libgphoto2-2.3
 dnl A:R:C=7:1:7 libgphoto2_port-0.7.1 libgphoto2-2.3.x
 dnl A:R:C=8:0:8 libgphoto2_port-0.8.0 libgphoto2-2.4.x
 dnl A:R:C=9:1:9 libgphoto2_port-0.10.0 libgphoto2-2.5.x
-AC_SUBST([LIBGPHOTO2_PORT_AGE],      [0])
-AC_SUBST([LIBGPHOTO2_PORT_REVISION], [0])
-AC_SUBST([LIBGPHOTO2_PORT_CURRENT],  [12])
+AC_SUBST([LIBGPHOTO2_PORT_AGE],      [1])
+AC_SUBST([LIBGPHOTO2_PORT_REVISION], [1])
+AC_SUBST([LIBGPHOTO2_PORT_CURRENT],  [11])
 AC_SUBST([LIBGPHOTO2_PORT_CURRENT_MIN],
          [`expr $LIBGPHOTO2_PORT_CURRENT - $LIBGPHOTO2_PORT_AGE`])
 AC_SUBST([LIBGPHOTO2_PORT_VERSION_INFO],
@@ -160,8 +160,31 @@ AC_CHECK_HEADERS(stdlib.h unistd.h stdio.h fcntl.h errno.h sys/time.h	\
 dnl FIXME: Provide regex.h with the corresponding object code for 
 dnl        platforms which do not have it, e.g. Windows.
 AC_CHECK_HEADER([regex.h],
-                [AC_DEFINE([HAVE_REGEX],1,[whether we have regex.h])],[])
-AC_CHECK_LIB([regex],[regexec])
+                [AC_DEFINE([HAVE_REGEX],1,[whether we have regex.h])],
+		[AC_MSG_ERROR([
+*** We need regex.h and its object code to compile
+*** But we could not find it.
+])
+])
+
+dnl ---------------------------------------------------------------------------
+dnl Apple Bonjour / mDNSResponder multicast DNS queries.
+dnl ---------------------------------------------------------------------------
+with_bonjour=no
+AC_ARG_WITH([bonjour],
+	AS_HELP_STRING([--without-bonjour], [whether to exclude Bonjour PTP/IP autodetection]),
+	,with_bonjour=yes)
+
+MDNS_LIBS=
+if test "x$with_bonjour" = "xyes"; then
+	AC_CHECK_HEADER([dns_sd.h],[
+		AC_CHECK_LIB(dns_sd,DNSServiceResolve,[
+			MDNS_LIBS="-ldns_sd"
+			AC_DEFINE(HAVE_MDNS_BONJOUR,1,[Define if you have Bonjour/mDNSResponder.])
+		])
+	])
+fi
+AC_SUBST(MDNS_LIBS)
 
 AC_MSG_CHECKING([for asm .symver support])
 AC_COMPILE_IFELSE([dnl
@@ -219,42 +242,6 @@ AC_TRY_COMPILE([#include <sys/ioctl.h>], [int foo = TIOCM_RTS;],
 # Check for va_copy()
 GP_VA_COPY
 
-dnl ---------------------------------------------------------------------------
-dnl libexif: The virtual usb camera driver can use libexif for extracting thumbnails
-dnl	     out of EXIF data. Similarly, it can extract the mtime of
-dnl	     a file. 
-dnl	     libexif is available from
-dnl	     http://www.sourceforge.net/projects/libexif
-dnl ---------------------------------------------------------------------------
-GP_CHECK_LIBRARY([LIBEXIF],[libexif],[>= 0.6.13],
-		 [libexif/exif-data.h],[exif_data_new],[
-AC_MSG_CHECKING([whether we use a version of libexif with ExifData.ifd[[]]])
-# Check for libexif version
-dnl FIXME: Use AC_CHECK_MEMBER?
-CPPFLAGS_save="$CPPFLAGS"
-CPPFLAGS="$LIBEXIF_CFLAGS"
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
-/* CC=$CC */
-/* CPPFLAGS=${CPPFLAGS} */
-/* LDFLAGS=${LDFLAGS} */
-#include <libexif/exif-data.h>
-#include <libexif/exif-content.h>
-]],[[
-	ExifData ed;
-	ExifContent *ec0, *ec1;
-	ec0 = &ed.ifd[0];
-	ec1 = &ed.ifd[1];
-]])], [
-   AC_DEFINE([HAVE_LIBEXIF_IFD],1,
-	     [whether we use a version of libexif with ExifData.ifd[[]]])
-   AC_MSG_RESULT([yes])
-], [
-   AC_MSG_RESULT([no])
-])
-CPPFLAGS="$CPPFLAGS_save"
-],[],[default-on],[http://www.sourceforge.net/projects/libexif])dnl
-
-
 
 dnl ---------------------------------------------------------------------------
 dnl serial
@@ -264,13 +251,6 @@ have_serial=true
 try_ttylock=true
 try_lockdev=true
 try_resmgr=true
-
-if test "$ac_cv_header_sgtty_h" = "no"
-then
-  have_serial=false
-  serial_msg=no
-fi
-
 AC_ARG_ENABLE([serial],
 	[AS_HELP_STRING([--disable-serial],
 			[do not compile in SERIAL support])],
@@ -368,50 +348,22 @@ dnl but newer Linux systems need it on startup, not later. So link libgphoto2_po
 dnl against libpthread
 AC_CHECK_LIB(pthread, pthread_create)
 
+GP_CONFIG_MSG([USB ports])
+GP_CHECK_LIBRARY([LIBUSB],[libusb],[>= 0.1.5],
+		[usb.h],[usb_open],[
+	IOLIB_LIST="$IOLIB_LIST usb usbdiskdirect usbscsi"
+],[],
+		[default-on],
+		[http://libusb.sourceforge.net/]
+)
+
 dnl ---------------------------------------------------------------------------
 dnl libusb1
 dnl ---------------------------------------------------------------------------
 GP_CONFIG_MSG([USB ports])
 GP_CHECK_LIBRARY([LIBUSB1],[libusb-1.0],[>= 1.0.0],
 		[libusb.h],[libusb_init],[
-        case "$host" in
-          *-*-mingw* | *-*-cygwin* | *-*-msvc* )
-	  IOLIB_LIST="$IOLIB_LIST usb1"
-          ;;
-          *)
-	  IOLIB_LIST="$IOLIB_LIST usb1 usbdiskdirect usbscsi"
-          ;;
-        esac
-
-	# only in libusbx? but not in traditional libusb 1.0
-	# note that the library is not always named libusb-1.0.so , e.g. on freebsd it is not.
-	save_LIBS="$LIBS"
-	LIBS="$LIBS $LIBUSB1_LIBS"
-	AC_CHECK_FUNC(libusb_strerror, [
-		AC_DEFINE(HAVE_LIBUSB_STRERROR,1,[Define if libusb-1.0 has libusb_strerror])
-	])
-	LIBS="$save_LIBS"
-
-],[],
-		[default-on],
-		[http://libusb.sourceforge.net/]
-)
-# We select the old libusb 0 only if we are not doing libusb1
-GP_CHECK_LIBRARY([LIBUSB],[libusb],[>= 0.1.5],
-		[usb.h],[usb_open],[
-	case "$host" in
-	  *-*-mingw* | *-*-cygwin* | *-*-msvc* )
-	  dnl Windows itself has usb.h we mis-detect, in that case remove access to the other usb.h
-	  IOLIB_LIST="$IOLIB_LIST usb"
-	  ;;
-	  *)
-	  if test "x$have_LIBUSB1" != xyes; then
-		IOLIB_LIST="$IOLIB_LIST usb usbdiskdirect usbscsi"
-          else
-		GP_CONFIG_MSG([libusb0 support],[detected, but disabled (libusb1 support is enabled)])
-          fi
-	  ;;
-	esac
+	IOLIB_LIST="$IOLIB_LIST usb1 usbdiskdirect usbscsi"
 ],[],
 		[default-on],
 		[http://libusb.sourceforge.net/]
@@ -427,19 +379,6 @@ AC_ARG_ENABLE([disk],
 dnl disk port also works everywhere, but it's not really necessary
 if test "x$enable_disk" = "xyes"; then
 	IOLIB_LIST="$IOLIB_LIST disk"
-fi
-
-AC_ARG_ENABLE([vusb],
-	AS_HELP_STRING([--enable-vusb], [enable the 'vusb' virtual USB port driver]),
-	,[
-		enable_vusb=no
-		GP_CONFIG_MSG([virtual USB support],[disabled, no virtual PTP test camera])
-	]
-)
-
-dnl disk port also works everywhere, but it's not really necessary
-if test "x$enable_vusb" = "xyes"; then
-	IOLIB_LIST="$IOLIB_LIST vusb"
 fi
 
 AC_ARG_ENABLE([ptpip],
@@ -461,11 +400,6 @@ done
 AC_SUBST(IOLIB_LTLIST)
 AC_SUBST([iolibdir],["\$(libdir)/\$(PACKAGE_TARNAME)/\$(VERSION)"])
 AM_CPPFLAGS="$AM_CPPFLAGS -DIOLIBS=\\\"${iolibdir}\\\""
-
-sorted_iolib_list="$(echo "${IOLIB_LIST}" | tr ' ' '\n' | sort | ${SED} '/^$/d' | tr '\n' ' ' | ${SED} 's/ $//')"
-AC_DEFINE_UNQUOTED([IOLIB_LIST], ["${sorted_iolib_list}"], [Define as string containing a list of the iolibs])
-GP_CONFIG_MSG([General])
-GP_CONFIG_MSG([IOLIBs], [${sorted_iolib_list}])
 
 
 dnl --------------------------------------------------------------------
@@ -509,6 +443,9 @@ dnl ---------------------------------------------------------------------------
 if test "$GCC" = "yes"; then
 	CFLAGS="$CFLAGS -Wall"
 	CFLAGS="$CFLAGS -Wmissing-declarations -Wmissing-prototypes"
+	# FIXME: Check for --enable-debug here
+	CFLAGS="$CFLAGS -g"
+	LDFLAGS="$LDFLAGS -g"
 fi
 
 # Activate internal code
@@ -536,7 +473,7 @@ libgphoto2_port-uninstalled.pc
 gphoto2-port-config
 test/Makefile
 doc/Makefile
-gphoto-m4/Makefile
+m4/Makefile
 ])
 AC_OUTPUT
 

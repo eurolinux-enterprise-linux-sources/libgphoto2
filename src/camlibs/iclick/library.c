@@ -15,8 +15,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -172,7 +172,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 	unsigned char *ppm, *ptr;
 	unsigned char gtable[256];
 	int start;
-	int datasize, hdrsize, ppmsize;
+	int datasize, framesize, hdrsize, ppmsize;
 	int nb_frames=1;
 	unsigned char buf[0x8000];
 
@@ -238,6 +238,9 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 		icl_read_picture_data(camera->port, buf, start - camera->pl->data_offset);
 		camera->pl->data_offset = start;
 	}
+
+	/* Retrieve frames */
+	framesize = datasize;
 
 	frame_data = malloc(datasize);
 	if (!frame_data) return GP_ERROR_NO_MEMORY;

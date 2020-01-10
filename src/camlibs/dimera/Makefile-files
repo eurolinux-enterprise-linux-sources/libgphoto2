@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += dimera/CREDITS dimera/Protocol.txt dimera/ChangeLog dimera/TODO
 
 EXTRA_LTLIBRARIES += dimera3500.la

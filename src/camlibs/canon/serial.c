@@ -12,15 +12,18 @@
  *
  ****************************************************************************/
 
-#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
 
 #include "config.h"
 
 #include <stdio.h>
+#include <unistd.h>
+#include <termios.h>
 #include <fcntl.h>
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 #include <stdlib.h>
 #include <ctype.h>
 
@@ -337,7 +340,11 @@ canon_serial_recv_frame (Camera *camera, int *len)
 		*p++ = c;
 	}
 
-	GP_LOG_DATA ((char *)buffer, p - buffer, "RECV (without CANON_FBEG and CANON_FEND bytes)");
+	/* If you don't want to see the data dumped, change the frontend to
+	 * set a lower debug level
+	 */
+	gp_log (GP_LOG_DATA, "canon", "RECV (without CANON_FBEG and CANON_FEND bytes)");
+	gp_log_data ("canon", (char *)buffer, p - buffer);
 
 	if (len)
 		*len = p - buffer;
@@ -366,7 +373,7 @@ canon_serial_send_packet (Camera *camera, unsigned char type, unsigned char seq,
 			  unsigned char *pkt, int len)
 {
 	unsigned char *hdr = pkt - PKT_HDR_LEN;
-	int crc;
+	unsigned short crc;
 
 	hdr[PKT_TYPE] = type;
 	hdr[PKT_SEQ] = seq;
@@ -387,8 +394,6 @@ canon_serial_send_packet (Camera *camera, unsigned char type, unsigned char seq,
 	if (type == PKT_EOT || type == PKT_ACK || type == PKT_NACK)
 		len = 2;	/* @@@ hack */
 	crc = canon_psa50_gen_crc (hdr, len + PKT_HDR_LEN);
-	if (crc == -1)
-		return GP_ERROR;
 	pkt[len] = crc & 0xff;
 	pkt[len + 1] = crc >> 8;
 
@@ -721,8 +726,10 @@ canon_serial_recv_msg (Camera *camera, unsigned char mtype, unsigned char dir, u
 			if (msg_pos + len > msg_size || !msg) {
 				msg_size *= 2;
 				msg = realloc (msg, msg_size);
-				if (!msg)
-					return NULL;
+				if (!msg) {
+					perror ("realloc");
+					exit (1);
+				}
 			}
 			memcpy (msg + msg_pos, frag, len);
 			msg_pos += len;
@@ -963,6 +970,7 @@ canon_serial_put_file (Camera *camera, CameraFile *file, const char *name, const
 		       GPContext *context)
 {
 	unsigned char *msg;
+	char filename[64];
 	char buf[4096];
 	int offset = 0;
 	char offset2[4];
@@ -970,12 +978,17 @@ canon_serial_put_file (Camera *camera, CameraFile *file, const char *name, const
 	char block_len2[4];
 	unsigned int sent = 0;
 	int i, j = 0;
-	unsigned int len;
+	unsigned int len, hdr_len;
 	unsigned long int size;
 	const char *data;
 	unsigned int id;
 
 	camera->pl->uploading = 1;
+	for (i = 0; name[i]; i++)
+		filename[i] = toupper (name[i]);
+	filename[i] = '\0';
+
+	hdr_len = HDR_FIXED_LEN + strlen (name) + strlen (destpath);
 
 	gp_file_get_data_and_size (file, &data, &size);
 
@@ -1134,9 +1147,11 @@ canon_serial_get_dirents (Camera *camera, unsigned char **dirent_data,
 		return GP_ERROR;
 	}
 
-	GP_LOG_DATA ((char *)p, *dirents_length,
-				 "canon_serial_get_dirents: "
-				 "dirent packet received from canon_serial_dialogue:");
+	/* don't use GP_DEBUG since we log this with GP_LOG_DATA */
+	gp_log (GP_LOG_DATA, "canon",
+		"canon_serial_get_dirents: "
+		"dirent packet received from canon_serial_dialogue:");
+	gp_log_data ("canon", (char *)p, *dirents_length);
 
 	/* the first five bytes is only for the RS232 implementation
 	 * of this command, we do not need to copy them so therefore
@@ -1173,9 +1188,11 @@ canon_serial_get_dirents (Camera *camera, unsigned char **dirent_data,
 			return GP_ERROR;
 		}
 
-		GP_LOG_DATA ((char *)p, *dirents_length,
-					 "canon_serial_get_dirents: "
-					 "dirent packet received from canon_serial_recv_msg:");
+		/* don't use GP_DEBUG since we log this with GP_LOG_DATA */
+		gp_log (GP_LOG_DATA, "canon",
+			"canon_serial_get_dirents: "
+			"dirent packet received from canon_serial_recv_msg:");
+		gp_log_data ("canon", (char *)p, *dirents_length);
 
 		/* the first five bytes is only for the RS232 implementation,
 		 * don't count them when checking dirent size

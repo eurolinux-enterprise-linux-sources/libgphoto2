@@ -15,8 +15,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -228,9 +228,9 @@ static unsigned char *digita_file_get(Camera *camera, const char *folder,
 	strcpy(fn.dosname, filename);
 
 	/* How much data we're willing to accept */
-	tag.offset = htobe32(0);
-	tag.length = htobe32(GFD_BUFSIZE);
-	tag.filesize = htobe32(0);
+	tag.offset = htonl(0);
+	tag.length = htonl(GFD_BUFSIZE);
+	tag.filesize = htonl(0);
 
 	buflen = GFD_BUFSIZE;
 	data = malloc(buflen);
@@ -246,7 +246,7 @@ static unsigned char *digita_file_get(Camera *camera, const char *folder,
 		return NULL;
 	}
 
-	buflen = be32toh(tag.filesize);
+	buflen = ntohl(tag.filesize);
 	if (thumbnail)
 		buflen += 16;
 
@@ -256,24 +256,24 @@ static unsigned char *digita_file_get(Camera *camera, const char *folder,
 		return NULL;
 	}
 
-	len = be32toh(tag.filesize);
-	pos = be32toh(tag.length);
+	len = ntohl(tag.filesize);
+	pos = ntohl(tag.length);
 	id = gp_context_progress_start (context, len, _("Getting file..."));
 	while (pos < len) {
 		gp_context_progress_update (context, id, pos);
 
-		tag.offset = htobe32(pos);
+		tag.offset = htonl(pos);
 		if ((len - pos) > GFD_BUFSIZE)
-			tag.length = htobe32(GFD_BUFSIZE);
+			tag.length = htonl(GFD_BUFSIZE);
 		else
-			tag.length = htobe32(len - pos);
+			tag.length = htonl(len - pos);
 
 		if (digita_get_file_data(camera->pl, thumbnail, &fn, &tag, data + pos) < 0) {
 			GP_DEBUG ("digita_get_file_data failed.");
 			free (data);
 			return NULL;
 		}
-		pos += be32toh(tag.length);
+		pos += ntohl(tag.length);
 	}
 	gp_context_progress_stop (context, id);
 
@@ -351,9 +351,9 @@ static int get_file_func(CameraFilesystem *fs, const char *folder,
 		char *ppm;
 
 		memcpy((void *)&height, data + 4, 4);
-		height = be32toh(height);
+		height = ntohl(height);
 		memcpy((void *)&width, data + 8, 4);
-		width = be32toh(width);
+		width = ntohl(width);
 
 		GP_DEBUG( "picture size %dx%d", width, height);
 		GP_DEBUG( "data size %d", buflen - 16);

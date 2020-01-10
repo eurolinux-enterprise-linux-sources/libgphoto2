@@ -1,21 +1,6 @@
 /*
  * agfa_cl18.c
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details. 
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
- *
  *  Command set specific to agfa-ephoto-CL18
  *
  * Copyright 2001-2002 Vince Weaver <vince@deater.net>
@@ -44,28 +29,23 @@ int agfa_capture(CameraPrivateLibrary *dev, CameraFilePath *path) {
     /*FIXME: Not fully implemented according to the gphoto2 spec.*/
     /*Should also save taken picture, and then delete it from the camera*/
     /*but when I try to do that it just hangs*/
-
-    int ret;
+        
+    int ret,taken;
 
     ret=soundvision_send_command(SOUNDVISION_SETPC1,0,dev);
-    if (ret < 0) return ret;
     ret=soundvision_send_command(SOUNDVISION_SETPC2,0,dev);
-    if (ret < 0) return ret;
     ret=soundvision_send_command(SOUNDVISION_TAKEPIC3,0,dev);
-    if (ret < 0) return ret;
     ret=soundvision_send_command(SOUNDVISION_SETPC2,0,dev);
-    if (ret < 0) return ret;
     
     /*Not sure if this delay is necessary, but it was used in the windows driver*/
     /*delay(20); */
     sleep(20);
     /*Again, three times in windows driver*/
-    soundvision_photos_taken(dev);
-    soundvision_photos_taken(dev);
-    soundvision_photos_taken(dev);
+    taken = soundvision_photos_taken(dev);
+    taken = soundvision_photos_taken(dev);
+    taken = soundvision_photos_taken(dev);
     /*This seems to do some kind of reset, but does cause the camera to start responding again*/
     ret=soundvision_send_command(SOUNDVISION_GET_NAMES, 0, dev);
-    if (ret < 0) return ret;
 
     return GP_OK;
 }
@@ -157,7 +137,7 @@ int agfa_delete_picture(CameraPrivateLibrary *dev, const char *filename) {
     }
 
     if (dev->file_list) free(dev->file_list);
-    dev->file_list = (char *)buffer;
+    dev->file_list = buffer;
    
     ret=soundvision_send_command(SOUNDVISION_GET_PIC_SIZE,0,dev);
     if (ret<0) return ret;

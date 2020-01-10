@@ -1,6 +1,6 @@
 /*
  * Jenopt JD11 Camera Driver
- * Copyright 1999-2001 Marcus Meissner <marcus@jet.franken.de> 
+ * Copyright © 1999-2001 Marcus Meissner <marcus@jet.franken.de> 
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 
 #include <gphoto2/gphoto2.h>
@@ -418,22 +419,17 @@ jd11_index_reader(GPPort *port, CameraFilesystem *fs, GPContext *context) {
 	}
 	ret = gp_file_append(file,(char*)thumb,sizeof(thumb));
 	if (ret != GP_OK) {
-    		free(indexbuf);
 		gp_file_free (file);
 		return ret;
 	}
 	ret = gp_filesystem_append(fs, "/", fn, context);
 	if (ret != GP_OK) {
 		/* should perhaps remove the entry again */
-    		free(indexbuf);
 		gp_file_free (file);
 		return ret;
 	}
 	ret = gp_filesystem_set_file_noop(fs, "/", fn, GP_FILE_TYPE_PREVIEW, file, context);
-	if (ret != GP_OK) {
-    		free(indexbuf);
-		return ret;
-	}
+	if (ret != GP_OK) return ret;
 
 	/* we also get the fs info for free, so just set it */
 	info.file.fields = GP_FILE_INFO_TYPE |
@@ -463,7 +459,7 @@ serial_image_reader(Camera *camera,CameraFile *file,int nr,unsigned char ***imag
     unsigned int id;
 
     jd11_select_image(port,nr);
-    *imagebufs = (unsigned char**)malloc(3*sizeof(unsigned char*));
+    *imagebufs = (unsigned char**)malloc(3*sizeof(char**));
     for (picnum=0;picnum<3;picnum++) {
 	curread=0;
 	sizes[picnum] = jd11_imgsize(port);
@@ -532,17 +528,16 @@ jd11_get_image_full(
 	    for (w=320;w--;) {
 		if (h&1) {
 		    /* G B G B G B G B G */
-		    *s++ = uncomp[0][h*320+w];
 		    *s++ = uncomp[2][(h/2)*320+w];
+		    *s++ = uncomp[0][h*320+w];
 		} else {
 		    /* R G R G R G R G R */
-		    *s++ = uncomp[1][(h/2)*320+w];
 		    *s++ = uncomp[0][h*320+w];
+		    *s++ = uncomp[1][(h/2)*320+w];
 		}
 	    }
 	}
-	/*gp_bayer_decode(bayerpre,640,480,data,BAYER_TILE_GRBG);*/
-	gp_ahd_decode(bayerpre,640,480,data,BAYER_TILE_GRBG);
+	gp_bayer_decode(bayerpre,640,480,data,BAYER_TILE_RGGB);
 	free(bayerpre);
     } else {
 	s=data;

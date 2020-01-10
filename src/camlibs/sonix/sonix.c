@@ -17,8 +17,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include <config.h>
@@ -67,7 +67,7 @@ SONIX_COMMAND (GPPort *port, char *command)
 
 int sonix_init (GPPort *port, CameraPrivateLibrary *priv)
 {
-	int i;
+	int i, command_done=1;
 	char c[6];
 	char status;
 	unsigned char reading[4];
@@ -94,14 +94,13 @@ int sonix_init (GPPort *port, CameraPrivateLibrary *priv)
 		}
 	}
 		
-	SONIX_COMMAND ( port, c);
+	command_done = SONIX_COMMAND ( port, c);
 
 
 	while (status !=2)
 		SONIX_READ(port, &status);	
 		
-	/* FIXME(Marcus): was indented at above level, unclear if it is needed this way ... */
-	SONIX_READ(port, &status);
+		SONIX_READ(port, &status);			
 
 	skip_a_step:
 	

@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include <config.h>
@@ -206,6 +206,11 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 	}
 
 	/* Now get ready to put the data into a PPM image file. */
+	p_data = malloc( w*h );
+	if (!p_data) {
+		status =  GP_ERROR_NO_MEMORY;
+		goto end;
+	}
 	image_start=data+5;
 	if (w == 176) {
 		for (i=1; i < h; i +=4){

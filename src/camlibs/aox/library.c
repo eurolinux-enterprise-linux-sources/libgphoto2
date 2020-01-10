@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -206,18 +206,16 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 
 	switch (type) {
 	case GP_FILE_TYPE_EXIF:
-		free (data);
 		return (GP_ERROR_FILE_EXISTS);
 
 	case GP_FILE_TYPE_PREVIEW:
 	case GP_FILE_TYPE_NORMAL:
-		if (w == 320) {
+		if ((w == 320)) {
 			gp_file_detect_mime_type (file); /* Detected as "raw"*/
 			gp_file_set_data_and_size (file, (char *)data, len);
 			gp_file_adjust_name_for_mime_type (file);
-			break;
 		}
-		if (w == 640) {
+		if ((w == 640)){
 			/* Stripping useless header */
 			p_data = data + 0x98;
 			/* Picture is mirror-imaged.*/
@@ -260,7 +258,6 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
     			gp_file_append (file, header, header_len);
 			gp_file_append (file, (char *)output, 3*w*h);
 		}
-		free (data);
 		free (output);
 		return GP_OK;
 	case GP_FILE_TYPE_RAW:
@@ -269,9 +266,10 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 		gp_file_adjust_name_for_mime_type(file);
 		break;
 	default:
-		free (data);
 		return (GP_ERROR_NOT_SUPPORTED); 	
+
 	}
+
 	return GP_OK;
 }
 

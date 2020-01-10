@@ -1,43 +1,27 @@
-%bcond_with gp2ddb
-
 %global udevdir %(pkg-config --variable=udevdir udev)
-%global port_version 0.12.0
 
 Name:           libgphoto2
-Version:        2.5.15
-Release:        3%{?dist}
+Version:        2.5.2
+Release:        1%{?dist}
 Summary:        Library for accessing digital cameras
 Group:          Development/Libraries
 # GPLV2+ for the main lib (due to exif.c) and most plugins, some plugins GPLv2
 License:        GPLv2+ and GPLv2
 URL:            http://www.gphoto.org/
-
-Source0:        http://downloads.sourceforge.net/gphoto/%{name}-%{version}.tar.bz2
+Source0:        http://downloads.sourceforge.net/gphoto/libgphoto2-%{version}.tar.bz2
 Patch1:         gphoto2-pkgcfg.patch
 Patch2:         gphoto2-storage.patch
 Patch3:         gphoto2-ixany.patch
 Patch4:         gphoto2-device-return.patch
-Patch5:         gphoto2-ptp.patch
-BuildRequires:  gcc
-BuildRequires:  gcc-c++
-BuildRequires:  make
-BuildRequires:  systemd
-%if %{with gp2ddb}
-BuildRequires:  flex
-BuildRequires:  bison
-%endif
-BuildRequires:  libtool-ltdl-devel
-BuildRequires:  libjpeg-devel
-BuildRequires:  pkgconfig(libxml-2.0)
-BuildRequires:  gd-devel
-BuildRequires:  pkgconfig(libexif)
-# -----------------------------------
-# libgphoto2_port
-# -----------------------------------
+BuildRequires:  libusb1-devel, libusb-devel >= 0.1.5
 BuildRequires:  lockdev-devel
-BuildRequires:  pkgconfig(libusb-1.0)
+BuildRequires:  libexif-devel
+BuildRequires:  libjpeg-devel
+BuildRequires:  pkgconfig, sharutils
+BuildRequires:  libtool-ltdl-devel, popt-devel
+BuildRequires:  gd-devel
+BuildRequires:  systemd
 Requires:       lockdev
-# -----------------------------------
 Obsoletes:      gphoto2 < 2.4.0-11
 
 %description
@@ -51,7 +35,7 @@ however, such as gtkam for example.
 Summary:        Headers and links to compile against the libgphoto2 library
 Group:          Development/Libraries
 Requires:       %{name}%{?_isa} = %{version}-%{release}
-Requires:       libexif-devel
+Requires:       libusb-devel >= 0.1.5, libexif-devel
 Obsoletes:      gphoto2-devel < 2.4.0-11
 Provides:       gphoto2-devel = %{version}-%{release}
 
@@ -66,45 +50,51 @@ use libgphoto2.
 
 
 %prep
-%autosetup -p1
-for f in AUTHORS ChangeLog COPYING libgphoto2_port/AUTHORS libgphoto2_port/COPYING.LIB `find -name 'README.*'`; do
-    iconv -f ISO-8859-1 -t UTF-8 $f > $f.conv && mv -f $f.conv $f
+%setup -q
+%patch1 -p1 -b .pkgcfg
+%patch2 -p1 -b .storage
+%patch3 -p1 -b .ixany
+%patch4 -p1 -b .device-return
+
+for i in AUTHORS ChangeLog COPYING libgphoto2_port/AUTHORS libgphoto2_port/COPYING.LIB `find -name 'README.*'`; do
+	mv ${i} ${i}.old
+	iconv -f ISO-8859-1 -t UTF-8 < ${i}.old > ${i}
+	touch -r ${i}.old ${i} || :
+	rm -f ${i}.old
 done
 
-%build
-CFLAGS="$RPM_OPT_FLAGS -fno-strict-aliasing"
-CXXFLAGS="$RPM_OPT_FLAGS -fno-strict-aliasing"
 
+%build
+export CFLAGS="$RPM_OPT_FLAGS -fno-strict-aliasing"
 %configure \
-    udevscriptdir='%{udevdir}'   \
-    --with-drivers=all           \
-    --with-doc-dir=%{_pkgdocdir} \
-%if %{with gp2ddb}
-    --enable-gp2ddb              \
-%endif
-    --disable-static             \
-    --disable-rpath              \
-    %{nil}
+	udevscriptdir='%{udevdir}' \
+	--with-drivers=all \
+	--with-doc-dir=%{_docdir}/%{name} \
+	--disable-static \
+	--disable-rpath
 
 # Don't use rpath!
-sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool libgphoto2_port/libtool
-sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool libgphoto2_port/libtool
+sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
+sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
+sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libgphoto2_port/libtool
+sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libgphoto2_port/libtool
 
+make %{?_smp_mflags}
 
-%make_build
 
 %install
 %make_install INSTALL="install -p" mandir=%{_mandir}
 
 pushd packaging/linux-hotplug/
-  export LIBDIR=%{buildroot}%{_libdir}
-  export CAMLIBS=%{buildroot}%{_libdir}/%{name}/%{version}
-  export LD_LIBRARY_PATH=%{buildroot}%{_libdir}
+export LIBDIR=$RPM_BUILD_ROOT%{_libdir}
+export CAMLIBS=$RPM_BUILD_ROOT%{_libdir}/%{name}/%{version}
+export LD_LIBRARY_PATH=$RPM_BUILD_ROOT%{_libdir}
 
-  # Output udev rules for device identification; this is used by GVfs gphoto2
-  # backend and others.
-  mkdir -p %{buildroot}%{_udevrulesdir}
-  %{buildroot}%{_libdir}/%{name}/print-camera-list udev-rules version 136 > %{buildroot}%{_udevrulesdir}/40-libgphoto2.rules
+# Output udev rules for device identification; this is used by GVfs gphoto2
+# backend and others.
+#
+mkdir -p $RPM_BUILD_ROOT%{_udevrulesdir}
+$RPM_BUILD_ROOT%{_libdir}/%{name}/print-camera-list udev-rules version 136 > $RPM_BUILD_ROOT%{_udevrulesdir}/40-libgphoto2.rules
 popd
 
 # remove circular symlink in /usr/include/gphoto2 (#460807)
@@ -113,73 +103,43 @@ rm -f %{buildroot}%{_includedir}/gphoto2/gphoto2
 # remove unneeded print-camera-list from libdir (#745081)
 rm -f %{buildroot}%{_libdir}/libgphoto2/print-camera-list
 
-find %{buildroot} -type f -name "*.la" -print -delete
+rm -rf %{buildroot}%{_libdir}/libgphoto2/*/*a
+rm -rf %{buildroot}%{_libdir}/libgphoto2_port/*/*a
+rm -rf %{buildroot}%{_libdir}/*.a
+rm -rf %{buildroot}%{_libdir}/*.la
 
 %find_lang %{name}-6
-%find_lang %{name}_port-12
+%find_lang %{name}_port-10
 cat libgphoto2*.lang >> %{name}.lang
 
-# https://fedoraproject.org/wiki/Packaging_tricks#With_.25doc
-mkdir __doc
-mv %{buildroot}%{_pkgdocdir}/* __doc
-rm -rf %{buildroot}%{_pkgdocdir}
-rm -rf %{buildroot}%{_datadir}/libgphoto2_port/*/vcamera/
 
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
 
 
 %files -f %{name}.lang
-%license COPYING
-%doc AUTHORS README NEWS
-%{_libdir}/%{name}.so.*
-%{_libdir}/%{name}_port.so.*
-%dir %{_libdir}/%{name}/
-%dir %{_libdir}/%{name}/%{version}/
-%dir %{_libdir}/%{name}_port/
-%dir %{_libdir}/%{name}_port/%{port_version}/
-%{_libdir}/%{name}/%{version}/*.so
-%{_libdir}/%{name}_port/%{port_version}/*.so
+%doc AUTHORS COPYING README NEWS
+%dir %{_libdir}/libgphoto2_port
+%dir %{_libdir}/libgphoto2_port/*
+%dir %{_libdir}/libgphoto2
+%dir %{_libdir}/libgphoto2/*
+%{_libdir}/libgphoto2_port/*/*.so
+%{_libdir}/libgphoto2/*/*.so
+%{_libdir}/*.so.*
 %{_udevrulesdir}/40-libgphoto2.rules
 %{udevdir}/check-ptp-camera
-%{_datadir}/libgphoto2/
 
 %files devel
-%doc __doc/*
-%{_bindir}/gphoto2-config
+%doc %{_docdir}/%{name}
+%{_datadir}/libgphoto2
+%{_bindir}/gphoto2-config*
 %{_bindir}/gphoto2-port-config
-%{_includedir}/gphoto2/
-%{_libdir}/%{name}.so
-%{_libdir}/%{name}_port.so
-%{_libdir}/pkgconfig/%{name}.pc
-%{_libdir}/pkgconfig/%{name}_port.pc
-%{_mandir}/man3/%{name}.3*
-%{_mandir}/man3/%{name}_port.3*
+%{_includedir}/gphoto2
+%{_libdir}/*.so
+%{_libdir}/pkgconfig/*
+%{_mandir}/man3/*
 
 %changelog
-* Wed Mar 06 2019 Josef Ridky <jridky@redhat.com> - 2.5.15-3
-- fix CFLAGS and CXXFLAGS content
-
-* Wed Mar 06 2019 Josef Ridky <jridky@redhat.com> - 2.5.15-2
-- Resolves: #1551747 - fix issue with get folder list
-
-* Wed Oct 04 2017 Josef Ridky <jridky@redhat.com> - 2.5.15-1
-- Resolves: #1463585 - rebase to the latest upstream version
-
-* Wed Jun 21 2017 Debarshi Ray <rishi@fedoraproject.org> - 2.5.2-4
-- BuildRequire libusbx-devel, not libusbx
-Resolves: #1365875
-
-* Tue Jun 20 2017 Debarshi Ray <rishi@fedoraproject.org> - 2.5.2-4
-- Use only libusbx and drop libusb
-Resolves: #1365875
-
-* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 2.5.2-3
-- Mass rebuild 2014-01-24
-
-* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 2.5.2-2
-- Mass rebuild 2013-12-27
-
 * Mon May  6 2013 Hans de Goede <hdegoede@redhat.com> - 2.5.2-1
 - New upstream release bugfix 2.5.2
 - Drop bugfix patches (merged upstream)

@@ -1,23 +1,3 @@
-/* dc210.c
- *
- * Copyright (C) 2002 Michel Koltan <koltan@gmx.de>
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
- */
-
 #define _BSD_SOURCE
 #include "config.h"
 
@@ -357,7 +337,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("File type"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		if (wvalue[0] == 'J')
 			dc210_set_file_type(camera, DC210_FILE_TYPE_JPEG);
@@ -367,7 +346,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("File resolution"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		switch(wvalue[0]){
 		case '6':
@@ -381,7 +359,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("File compression"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		switch(wvalue[0]){
 		case 'L':
@@ -397,7 +374,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Zoom"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		switch(wvalue[0]){
 		case '5':
@@ -423,7 +399,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Exposure compensation"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		for (i = 0; i < sizeof(exp_comp)/sizeof(*exp_comp); i++){
 			if (strncmp(wvalue, exp_comp[i], 4) == 0){
@@ -435,7 +410,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 
 	gp_widget_get_child_by_label (window, _("Port speed"), &w);
 	if (gp_widget_changed (w)) {
-	        gp_widget_set_changed (w, 0);
 		gp_widget_get_value (w, &wvalue);
 		dc210_set_speed(camera, atoi(wvalue));
 	};
@@ -443,8 +417,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 	gp_widget_get_child_by_label (window, _("Flash"), &w);
 	gp_widget_get_child_by_label (window, _("Red eye flash"), &w2);
 	if (gp_widget_changed (w) || gp_widget_changed(w2)) {
-	        gp_widget_set_changed (w, 0);
-	        gp_widget_set_changed (w2, 0);
 		gp_widget_get_value (w, &wvalue);
 		gp_widget_get_value (w2, &w2value);
 		switch(wvalue[0]){

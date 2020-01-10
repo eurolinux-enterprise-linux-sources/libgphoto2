@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include <config.h>
@@ -80,7 +80,10 @@ camera_abilities (CameraAbilitiesList *list)
        		a.speed[0] = 0;
        		a.usb_vendor = models[i].idVendor;
        		a.usb_product= models[i].idProduct;
-		a.operations = GP_OPERATION_NONE;
+       		if (a.status == GP_DRIVER_STATUS_EXPERIMENTAL)
+			a.operations = GP_OPERATION_NONE;
+		else
+			a.operations = GP_OPERATION_NONE;
        		a.folder_operations = GP_FOLDER_OPERATION_DELETE_ALL;
 ;
 		a.file_operations   = GP_FILE_OPERATION_PREVIEW

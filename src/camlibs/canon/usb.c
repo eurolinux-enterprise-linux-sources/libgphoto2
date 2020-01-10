@@ -14,6 +14,8 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include <unistd.h>
+#include <termios.h>
 #include <ctype.h>
 #ifdef CANON_EXPERIMENTAL_UPLOAD
 /* For filestat to get file time for upload */
@@ -233,8 +235,6 @@ canon_usb_camera_init (Camera *camera, GPContext *context)
         i = gp_port_usb_msg_read (camera->port, 0x0c, 0x55, 0, (char *)msg, 1);
         if (i != 1) {
                 gp_context_error (context, _("Could not establish initial contact with camera"));
-		if (i < GP_OK)
-			return i;
                 return GP_ERROR_CORRUPTED_DATA;
         }
         camstat = msg[0];
@@ -248,9 +248,13 @@ canon_usb_camera_init (Camera *camera, GPContext *context)
 	case 'I':
 	case 'E':
 	default:
+		camstat_str = _("Unknown (some kind of error)");
 		gp_context_error (context, _("Initial camera response '%c' unrecognized"),
 				  camstat);
-		return GP_ERROR_CORRUPTED_DATA;
+                if ( i < 0 )
+                        return GP_ERROR_OS_FAILURE;
+                else
+                        return GP_ERROR_CORRUPTED_DATA;
         }
 
         GP_DEBUG ("canon_usb_camera_init() initial camera response: %c/'%s'",
@@ -468,14 +472,12 @@ canon_usb_init (Camera *camera, GPContext *context)
 
         GP_DEBUG ("Initializing the (USB) camera.");
 
-#if 0
-	/* FIXME: as raspberry user confirmed the need for those...
- 	 * I am currently not sure why I added them.
-	 */
+	/* FIXME: check these ... they seem necessary actually, but might
+	 * cause issues on USB 3 or RaspBerry Pi */
 	gp_port_usb_clear_halt (camera->port, GP_PORT_USB_ENDPOINT_IN);
 	gp_port_usb_clear_halt (camera->port, GP_PORT_USB_ENDPOINT_OUT);
 	gp_port_usb_clear_halt (camera->port, GP_PORT_USB_ENDPOINT_INT);
-#endif
+
         camstat = canon_usb_camera_init (camera, context);
         if ( camstat < 0 )
                 return camstat;
@@ -909,11 +911,8 @@ static int canon_usb_poll_interrupt_pipe ( Camera *camera, unsigned char *buf, u
         	gettimeofday ( &cur, NULL );
 		curduration =	(cur.tv_sec-start.tv_sec)*1000 +
 				(cur.tv_usec-start.tv_usec)/1000;
-		if (curduration >= timeout) {
-			/* Timeout is not an error */
-			status = 0;
+		if (curduration >= timeout)
 			break;
-		}
         }
         gettimeofday ( &end, NULL );
 
@@ -933,6 +932,75 @@ static int canon_usb_poll_interrupt_pipe ( Camera *camera, unsigned char *buf, u
         return status;
 }
 
+/**
+ * canon_usb_poll_interrupt_multiple:
+ * @camera: Array of Camera's to work with
+ * @n_cameras: Length of #camera
+ * @camera_flags: array of int's corresponding to entries in #camera.
+ *                Non-zero (true) if that camera is to be polled, zero
+ *                (false) if that camera is to be ignored.
+ * @buf: buffer to receive data read from the pipe.
+ * @n_tries: number of times to try
+ * @which: returns index of camera that responded
+ *
+ * Polls the interrupt pipes of several cameras either until one
+ *  responds, or for a specified number of tries.
+ *  We will return when:
+ * 1. a non-zero length is returned,
+ * 2. an error code is returned, or
+ * 3. the number of read attempts reaches @n_tries.
+ *
+ * Returns:
+ *  length of read, or
+ *  zero if n_tries has been exceeded, or
+ *  gphoto2 error code from read that results in an I/O error.
+ *
+ */
+static int
+canon_usb_poll_interrupt_multiple ( Camera *camera[], int n_cameras,
+                                        int camera_flags[],
+                                        unsigned char *buf, int n_tries,
+                                        int *which )
+{
+        int i = 0, status = 0, timeout;
+
+        memset ( buf, 0x81, 0x40 ); /* Put weird stuff in buffer */
+        *which = 0;                          /* Start with the first camera */
+
+        /* Read repeatedly until we get either an
+           error or a non-zero size. */
+        while ( status == 0 && i < n_tries ) {
+                while ( !camera_flags[*which] )
+                        *which = (*which+1) % n_cameras;
+
+		/*
+		 * Ideally this timeout code should be hoisted above the
+		 * while() loop.  But since this entire function is
+		 * dead code, I am loath to put a lot of effort into
+		 * it.  We should probably just remove the entire function.
+		 * -pjw
+		 */
+		gp_port_get_timeout ( camera[*which]->port, &timeout );
+		gp_port_set_timeout ( camera[*which]->port, CANON_FAST_TIMEOUT );
+
+                status = gp_port_check_int ( camera[*which]->port,
+					     (char *)buf, 0x40 );
+
+		gp_port_set_timeout ( camera[*which]->port, timeout );
+
+        }
+
+
+        if ( status <= 0 )
+                GP_DEBUG ( "canon_usb_poll_interrupt_multiple:"
+			   " interrupt read failed after %i tries, \"%s\"",
+                           i, gp_result_as_string(status) );
+        else
+                GP_DEBUG ( "canon_usb_poll_interrupt_multiple:"
+                           " interrupt packet took %d tries", i+1 );
+
+        return status;
+}
 
 int
 canon_usb_wait_for_event (Camera *camera, int timeout,
@@ -1023,13 +1091,6 @@ canon_usb_capture_dialogue (Camera *camera, unsigned int *return_length, int *ph
         /* clear this to indicate that no data is there if we abort */
         if (return_length)
                 *return_length = 0;
-
-	/* for later wait_event */
-	if (!camera->pl->directory_state) {
-		unsigned int directory_state_len;
-
-		status = canon_usb_list_all_dirs ( camera, &camera->pl->directory_state, &directory_state_len, context );
-	}
 
         GP_DEBUG ("canon_usb_capture_dialogue()");
 
@@ -1351,6 +1412,7 @@ canon_usb_dialogue_full (Camera *camera, canonCommandIndex canon_funct, unsigned
         static unsigned char buffer[0x474];     /* used for receiving data from camera */
 	char *msg;
         int j, canon_subfunc = 0;
+        char subcmd = 0, *subfunct_descr = "";
         int additional_read_bytes = 0;
 
         /* clear this to indicate that no data is there if we abort */
@@ -1400,6 +1462,8 @@ canon_usb_dialogue_full (Camera *camera, canonCommandIndex canon_funct, unsigned
                 j = 0;
                 while (canon_usb_control_cmd[j].num != 0) {
                         if (canon_usb_control_cmd[j].subcmd == canon_subfunc) {
+                                subfunct_descr = canon_usb_control_cmd[j].description;
+                                subcmd = canon_usb_control_cmd[j].subcmd;
                                 additional_read_bytes = canon_usb_control_cmd[j].additional_return_length;
                                 break;
                         }
@@ -1436,11 +1500,13 @@ canon_usb_dialogue_full (Camera *camera, canonCommandIndex canon_funct, unsigned
                 return NULL;
         }
 
-        if (payload_length)
-                GP_LOG_DATA ((char *)payload, (long)payload_length, "Payload:");
+        if (payload_length) {
+                GP_DEBUG ("Payload :");
+                gp_log_data ("canon", (char *)payload, (long)payload_length);
+        }
 
         if ((payload_length + 0x50) > sizeof (packet)) {
-                gp_log (GP_LOG_DEBUG, "canon/usb.c",
+                gp_log (GP_LOG_VERBOSE, "canon/usb.c",
                         "canon_usb_dialogue:"
 			  " payload too big, won't fit into buffer (%i > %i)",
                         (payload_length + 0x50), (int)sizeof (packet));
@@ -1547,7 +1613,7 @@ canon_usb_dialogue_full (Camera *camera, canonCommandIndex canon_funct, unsigned
                                   reported_length, reported_length+0x40 );
 
                         if ( reported_length > 0 && reported_length+0x40 != read_bytes ) {
-                                gp_log (GP_LOG_DEBUG, "canon/usb.c",
+                                gp_log (GP_LOG_VERBOSE, "canon/usb.c",
 					"canon_usb_dialogue:"
 					  " expected 0x%x bytes, but camera reports 0x%x",
                                          read_bytes, reported_length+0x40 );

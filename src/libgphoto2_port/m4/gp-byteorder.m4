@@ -73,7 +73,6 @@ AC_HAVE_SYMBOL(ntohl,arpa/inet.h,
  [cat >> "$1" << EOF
 /* ntohl and relatives live here */
 #include <arpa/inet.h>
-#define __HAVE_NTOHL
 
 EOF],
 
@@ -81,7 +80,6 @@ EOF],
   [cat >> "$1" << EOF
 /* ntohl and relatives live here */
 #include <netinet/in.h>
-#define __HAVE_NTOHL
 
 EOF],true)])
 ])
@@ -177,27 +175,17 @@ EOF
 	else
  cat >> "$1" << EOF
 /* Use these as generic byteswapping macros on this little endian system */
-/* on windows we might not have ntohs / ntohl without including winsock.dll,
- * so use generic macros */
-#ifdef __HAVE_NTOHL
-# define swap16(x)	htons(x)
-# define swap32(x)	htonl(x)
-#else
-# define swap16(x)	((uint16_t)(((x) << 8) | ((uint16_t)(x) >> 8)))
-# define swap32(x)	((uint32_t)((((uint32_t)(x) << 24) & 0xff000000UL) | \\
-				    (((uint32_t)(x) << 8)  & 0x00ff0000UL) | \\
-				    (((x) >> 8)  & 0x0000ff00UL) | \\
-				    (((x) >> 24) & 0x000000ffUL)))
-#endif
+#define swap16(x)		ntohs(x)
+#define swap32(x)		ntohl(x)
 /* No optimized 64 bit byte swapping macro is available */
-#define swap64(x) ((uint64_t)((((uint64_t)(x) << 56) & 0xff00000000000000ULL) | \\
-			      (((uint64_t)(x) << 40) & 0x00ff000000000000ULL) | \\
-			      (((uint64_t)(x) << 24) & 0x0000ff0000000000ULL) | \\
-			      (((uint64_t)(x) << 8)  & 0x000000ff00000000ULL) | \\
-			      (((x) >> 8)  & 0x00000000ff000000ULL) | \\
-			      (((x) >> 24) & 0x0000000000ff0000ULL) | \\
-			      (((x) >> 40) & 0x000000000000ff00ULL) | \\
-			      (((x) >> 56) & 0x00000000000000ffULL)))
+#define swap64(x) ((uint64_t)(((uint64_t)(x) << 56) & 0xff00000000000000ULL | \\
+			      ((uint64_t)(x) << 40) & 0x00ff000000000000ULL | \\
+			      ((uint64_t)(x) << 24) & 0x0000ff0000000000ULL | \\
+			      ((uint64_t)(x) << 8)  & 0x000000ff00000000ULL | \\
+			      ((x) >> 8)  & 0x00000000ff000000ULL | \\
+			      ((x) >> 24) & 0x0000000000ff0000ULL | \\
+			      ((x) >> 40) & 0x000000000000ff00ULL | \\
+			      ((x) >> 56) & 0x00000000000000ffULL))
 
 EOF
 	fi
@@ -228,32 +216,16 @@ if test "$HAVE_LE32TOH" != "1"; then
 /* Arguments to these macros must be properly aligned on natural word */
 /* boundaries in order to work properly on all architectures */
 #ifndef htobe16
-# ifdef __HAVE_NTOHL
-#  define htobe16(x) htons(x)
-# else
-#  ifdef WORDS_BIGENDIAN
-#   define htobe16(x) (x)
-#  else
-#   define htobe16(x) swap16(x)
-#  endif
-# endif
+# define htobe16(x) htons(x)
 #endif
 #ifndef htobe32
-# ifdef __HAVE_NTOHL
-#  define htobe32(x) htonl(x)
-# else
-#  ifdef WORDS_BIGENDIAN
-#   define htobe32(x) (x)
-#  else
-#   define htobe32(x) swap32(x)
-#  endif
-# endif
+# define htobe32(x) htonl(x)
 #endif
 #ifndef be16toh
-# define be16toh(x) htobe16(x)
+# define be16toh(x) ntohs(x)
 #endif
 #ifndef be32toh
-# define be32toh(x) htobe32(x)
+# define be32toh(x) ntohl(x)
 #endif
 
 #define HTOBE16(x) (x) = htobe16(x)

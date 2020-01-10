@@ -16,15 +16,17 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
 
 #include <config.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -65,7 +67,7 @@ mars_init (Camera *camera, GPPort *port, Info *info)
 {
 	char c[16];
 	unsigned char status = 0;
-	memset(info,0, sizeof(*info)); 
+	memset(info,0, sizeof(info)); 
 	memset(c,0,sizeof(c));
 	GP_DEBUG("Running mars_init\n");
 
@@ -74,7 +76,7 @@ mars_init (Camera *camera, GPPort *port, Info *info)
 	 */ 
 
     	m_read(port, c, 16); 	
-	if (c[0] == 0x02) {
+	if ( (c[0] == 0x02 ) ) {
 		gp_port_write(port, "\x19", 1);
 		gp_port_read(port, c, 16);
 	}
@@ -91,7 +93,7 @@ mars_init (Camera *camera, GPPort *port, Info *info)
 	if ((info[0] == 0xff)&& (info[1] == 0)&&(info[2]==0xff))
 		memmove(info, info + 16, 0x1ff0); /* Saving config */
 	else
-		memmove(info, info + 144, 0x1f70); /* Saving config */
+		memcpy(info, info + 144, 0x1f70); /* Saving config */
 
 	GP_DEBUG("Leaving mars_init\n");
         return GP_OK;

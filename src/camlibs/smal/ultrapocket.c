@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -37,7 +37,6 @@
 
 #define GP_MODULE "Smal Ultrapocket"
 
-#include <locale.h>
 #ifdef ENABLE_NLS
 #  include <libintl.h>
 #  undef _
@@ -67,9 +66,9 @@ static int
 ultrapocket_command(GPPort *port, int iswrite, unsigned char *data, int datasize) {
     int ret;
     if (iswrite)
-	ret = gp_port_write(port, (char *)data, datasize);
+	ret = gp_port_write(port, data, datasize);
     else
-        ret = gp_port_read(port, (char *)data, datasize);
+        ret = gp_port_read(port, data, datasize);
 
     return ret;
 }
@@ -232,7 +231,7 @@ ultrapocket_getrawpicture(Camera *camera, GPContext *context,
 	imgstart = 0x29;
 	break;
      default:
-        return GP_ERROR;
+	break;
     }
 
    tile = BAYER_TILE_BGGR;
@@ -247,13 +246,11 @@ ultrapocket_getrawpicture(Camera *camera, GPContext *context,
    pmmhdr_len = strlen(ppmheader);
    outsize = ((long)width + 4) * height * 3 + pmmhdr_len;
    outdata = malloc(outsize);
-   if (!outdata) {
-     free(rawdata);
+   if (!outdata)
      return (GP_ERROR_NO_MEMORY);
-   }
 
    /* Set header */
-   strcpy((char *)outdata, ppmheader);
+   strcpy(outdata, ppmheader);
 
    /* Expand the Bayer tiles */
    result = gp_bayer_expand((rawdata+imgstart), width + 4, height,
@@ -342,7 +339,7 @@ ultrapocket_getpicture(Camera *camera, GPContext *context, unsigned char **pdata
    }
 
    /* Set header */
-   strcpy((char *)outdata, ppmheader);
+   strcpy(outdata, ppmheader);
 
    /* Decode and interpolate the Bayer tiles */
    result = gp_bayer_decode((rawdata+imgstart), width+4, height,
@@ -417,7 +414,7 @@ ultrapocket_skip(GPPort *port, int npackets)
 
    gp_port_get_timeout(port, &old_timeout);
    gp_port_set_timeout(port, 100);
-   for (; (npackets > 0) && gp_port_read(port, (char *)retbuf, 0x1000); npackets--);
+   for (; (npackets > 0) && gp_port_read(port, retbuf, 0x1000); npackets--);
    gp_port_set_timeout(port, old_timeout);
    return GP_OK;
 }

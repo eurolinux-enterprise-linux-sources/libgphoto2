@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += mars/protocol.txt mars/README.mars mars/ChangeLog
 camlibdoc_DATA += mars/README.mars
 

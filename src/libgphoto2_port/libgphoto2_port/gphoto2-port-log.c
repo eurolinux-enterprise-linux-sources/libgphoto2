@@ -1,6 +1,6 @@
 /** \file
  *
- * \author Copyright 2001 Lutz Mueller <lutz@users.sf.net>
+ * \author Copyright 2001 Lutz Müller <lutz@users.sf.net>
  *
  * \par License
  * This library is free software; you can redistribute it and/or
@@ -17,8 +17,8 @@
  * \par
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -81,49 +81,28 @@ static unsigned int log_funcs_count = 0;
 int
 gp_log_add_func (GPLogLevel level, GPLogFunc func, void *data)
 {
-	static int logfuncid = 0;
+	LogFunc *new_log_funcs;
 
-	C_PARAMS (func);
-	C_MEM (log_funcs = realloc (log_funcs, sizeof (LogFunc) *
-				(log_funcs_count + 1)));
+	if (!func)
+		return (GP_ERROR_BAD_PARAMETERS);
+
+	if (!log_funcs)
+		new_log_funcs = malloc (sizeof (LogFunc));
+	else
+		new_log_funcs = realloc (log_funcs, sizeof (LogFunc) * 
+					 (log_funcs_count + 1));
+	if (!new_log_funcs)
+		return (GP_ERROR_NO_MEMORY);
+
+	log_funcs = new_log_funcs;
 	log_funcs_count++;
 
-	log_funcs[log_funcs_count - 1].id = ++logfuncid;
+	log_funcs[log_funcs_count - 1].id = log_funcs_count;
 	log_funcs[log_funcs_count - 1].level = level;
 	log_funcs[log_funcs_count - 1].func = func;
 	log_funcs[log_funcs_count - 1].data = data;
 
-	return logfuncid;
-}
-
-
-char*
-gpi_vsnprintf (const char* format, va_list args)
-{
-	va_list xargs;
-	int strsize;
-	char *str;
-
-#ifdef HAVE_VA_COPY
-	va_copy (xargs, args);
-#else
-	/* according to 'the web', the only interesting compiler without va_copy is MSVC
-	 * and there a simple assignment is the way to go */
-	xargs = args;
-#endif
-
-	/* query the size necessary for the string, add the terminating '\0' */
-	strsize = vsnprintf (NULL, 0, format, xargs) + 1;
-	va_end (xargs);
-
-	str = malloc(strsize);
-	if (!str)
-		return NULL;
-
-	/* actually print the string into the buffer */
-	vsnprintf (str, strsize, format, args);
-
-	return str;
+	return (log_funcs_count);
 }
 
 /**
@@ -137,16 +116,13 @@ gpi_vsnprintf (const char* format, va_list args)
 int
 gp_log_remove_func (int id)
 {
-	int i;
+	if (id < 1 || id > log_funcs_count)
+		return (GP_ERROR_BAD_PARAMETERS);
 
-	for (i=0;i<log_funcs_count;i++) {
-		if (log_funcs[i].id == id) {
-			memmove (log_funcs + i, log_funcs + i + 1, sizeof(LogFunc) * (log_funcs_count - i - 1));
-			log_funcs_count--;
-			return GP_OK;
-		}
-	}
-	return GP_ERROR_BAD_PARAMETERS;
+	memmove (log_funcs + id - 1, log_funcs + id, log_funcs_count - id);
+	log_funcs_count--;
+
+	return (GP_OK);
 }
 
 /**
@@ -200,45 +176,37 @@ gp_log_remove_func (int id)
  * Takes the data and creates a formatted hexdump string. If you would like
  * to log text messages, use #gp_log instead.
  **/
-/* coverity[-tainted_sink] */
 void
-gp_log_data (const char *domain, const char *data, unsigned int size, const char *format, ...)
+gp_log_data (const char *domain, const char *data, unsigned int size)
 {
-	va_list args;
 	static const char hexchars[16] = "0123456789abcdef";
-	char *curline, *result = 0, *msg = 0;
+	char *curline, *result;
 	int x = HEXDUMP_INIT_X;
 	int y = HEXDUMP_INIT_Y;
-	unsigned int index, original_size = size;
+	int index;
 	unsigned char value;
 
-	va_start (args, format);
-	msg = gpi_vsnprintf(format, args);
-	va_end (args);
-	if (!msg) {
-		GP_LOG_E ("Malloc for expanding format string '%s' failed.", format);
-		goto exit;
-	}
-
 	if (!data) {
-		gp_log (GP_LOG_DATA, domain, "%s (no hexdump, NULL buffer)", msg);
-		goto exit;
+		gp_log (GP_LOG_DATA, domain, _("No hexdump (NULL buffer)"));
+		return;
 	}
 
 	if (!size) {
-		gp_log (GP_LOG_DATA, domain, "%s (empty hexdump of empty buffer)", msg);
-		goto exit;
+		gp_log (GP_LOG_DATA, domain, _("Empty hexdump of empty buffer"));
+		return;
 	}
 
 	if (size > 1024*1024) {
 		/* Does not make sense for 200 MB movies */
+		gp_log (GP_LOG_DATA, domain, _("Truncating dump from %d bytes to 1MB"), size);
 		size = 1024*1024;
 	}
 
 	curline = result = malloc ((HEXDUMP_LINE_WIDTH+1)*(((size-1)/16)+1)+1);
 	if (!result) {
-		GP_LOG_E ("Malloc for %i bytes failed", (HEXDUMP_LINE_WIDTH+1)*(((size-1)/16)+1)+1);
-		goto exit;
+		gp_log (GP_LOG_ERROR, "gphoto2-log", _("Malloc for %i bytes "
+			"failed"), (HEXDUMP_LINE_WIDTH+1)*(((size-1)/16)+1)+1);
+		return;
 	}
 
 	for (index = 0; index < size; ++index) {
@@ -267,13 +235,8 @@ gp_log_data (const char *domain, const char *data, unsigned int size, const char
         }
         curline[0] = '\0';
 
-        if (size == original_size)
-                gp_log (GP_LOG_DATA, domain, "%s (hexdump of %d bytes)\n%s", msg, size, result);
-        else
-                gp_log (GP_LOG_DATA, domain, "%s (hexdump of the first %d of %d bytes)\n%s", msg, size, original_size, result);
-
-exit:
-	free (msg);
+	gp_log (GP_LOG_DATA, domain, _("Hexdump of %i = 0x%x bytes follows:\n%s"),
+		size, size, result);
 	free (result);
 }
 
@@ -299,18 +262,45 @@ void
 gp_logv (GPLogLevel level, const char *domain, const char *format,
 	 va_list args)
 {
-	unsigned int i;
-	char *str = 0;
+	int i;
+#ifdef HAVE_VA_COPY
+	va_list xargs;
+#else
+#define xargs args
+#endif
+	int strsize = 1000;
+	char *str;
+	int n;
 
 	if (!log_funcs_count)
 		return;
 
-	str = gpi_vsnprintf(format, args);
-	if (!str) {
-		GP_LOG_E ("Malloc for expanding format string '%s' failed.", format);
-		return;
+	str = malloc(strsize);
+	if (!str) return;
+#ifdef HAVE_VA_COPY
+	va_copy (xargs, args);
+#endif
+	n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+	va_end(xargs);
+#endif
+	if (n+1>strsize) {
+		free (str);
+		str = malloc(n+1);
+		if (!str) {
+			va_end(args);
+			return;
+		}
+		strsize = n+1;
+#ifdef HAVE_VA_COPY
+		va_copy (xargs, args);
+#endif
+		n = vsnprintf (str, strsize, format, xargs);
+#ifdef HAVE_VA_COPY
+		va_end(xargs);
+#endif
 	}
-
+	va_end(args);
 	for (i = 0; i < log_funcs_count; i++)
 		if (log_funcs[i].level >= level)
 			log_funcs[i].func (level, domain, str, log_funcs[i].data);
@@ -331,21 +321,6 @@ void
 gp_log (GPLogLevel level, const char *domain, const char *format, ...)
 {
 	va_list args;
-
-	va_start (args, format);
-	gp_logv (level, domain, format, args);
-	va_end (args);
-}
-
-void
-gp_log_with_source_location(GPLogLevel level, const char *file, int line, const char *func, const char *format, ...)
-{
-	va_list args;
-        char domain[100];
-
-        /* Only display filename without any path/directory part */
-        file = strrchr(file, '/') ? strrchr(file, '/') + 1 : file;
-        snprintf(domain, sizeof(domain), "%s [%s:%d]", func, file, line);
 
 	va_start (args, format);
 	gp_logv (level, domain, format, args);
@@ -375,9 +350,6 @@ gp_log_with_source_location(GPLogLevel level, const char *file, int line, const 
 #ifdef gp_log
 #undef gp_log
 #endif
-#ifdef gp_log_with_source_location
-#undef gp_log_with_source_location
-#endif
 
 int
 gp_log_add_func (GPLogLevel level, GPLogFunc func, void *data)
@@ -392,7 +364,7 @@ gp_log_remove_func (int id)
 }
 
 void
-gp_log_data (const char *domain, const char *data, unsigned int size, const char *format, ...)
+gp_log_data (const char *domain, const char *data, unsigned int size)
 {
 }
 
@@ -404,11 +376,6 @@ gp_logv (GPLogLevel level, const char *domain, const char *format,
 
 void
 gp_log (GPLogLevel level, const char *domain, const char *format, ...)
-{
-}
-
-void
-gp_log_with_source_location(GPLogLevel level, const char *file, int line, const char *func, const char *format, ...)
 {
 }
 #endif /* DISABLE_DEBUGGING */

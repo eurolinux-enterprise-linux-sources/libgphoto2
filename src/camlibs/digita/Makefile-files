@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_LTLIBRARIES += digita.la
 EXTRA_DIST += digita/ChangeLog
 

@@ -1,6 +1,6 @@
 /*
  * STV0674 Camera Chipset Driver
- * Copyright 2002 Vincent Sanders <vince@kyllikki.org>
+ * Copyright © 2002 Vincent Sanders <vince@kyllikki.org>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -104,7 +104,7 @@ static int file_list_func (CameraFilesystem *fs, const char *folder,
     result = stv0674_file_count(camera->port, &count);
     if (result < GP_OK)
     {
-	GP_DEBUG("file count returned %d\n",result);
+	GP_DEBUG("file count returnd %d\n",result);
 	return result;
     }
 

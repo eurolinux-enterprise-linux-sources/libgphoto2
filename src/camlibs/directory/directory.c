@@ -1,6 +1,6 @@
 /* directory.c
  *
- * Copyright (c) 2001 Lutz Mueller <lutz@users.sf.net>
+ * Copyright (c) 2001 Lutz Müller <lutz@users.sf.net>
  * Copyright (c) 2005 Marcus Meissner <marcus@jet.franken.de>
  * Copyright (c) 2007 Hubert Figuiere <hub@figuiere.net>
  *
@@ -16,8 +16,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -30,6 +30,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <utime.h>
+#include <unistd.h>
 #ifdef HAVE_SYS_STATVFS_H
 # include <sys/statvfs.h>
 #endif
@@ -47,10 +48,6 @@
 #endif
 #include <fcntl.h>
 
-/* will happen only on Win32 */
-#ifndef HAVE_LSTAT
-#define lstat stat
-#endif
 
 #ifdef HAVE_LIBEXIF
 #include <libexif/exif-data.h>
@@ -60,7 +57,6 @@
 #include <gphoto2/gphoto2-library.h>
 #include <gphoto2/gphoto2-port.h>
 #include <gphoto2/gphoto2-port-log.h>
-#include <gphoto2/gphoto2-port-portability.h>
 
 #ifdef ENABLE_NLS
 #  include <libintl.h>
@@ -124,7 +120,6 @@ static const struct {
 	{"srw",  GP_MIME_RAW},
 	{"gf1",  GP_MIME_RAW},
 	{"srw",  GP_MIME_RAW},
-	{"nrw",  GP_MIME_RAW},
 	{"png",  GP_MIME_PNG},
 	{"wav",  GP_MIME_WAV},
 	{"3gp",  "video/3gpp"},
@@ -226,8 +221,6 @@ _get_path (GPPort *port, const char *folder, const char *file, char *path, unsig
 		char *xpath;
 
 		ret = _get_mountpoint (port, &xpath);
-		if (ret < GP_OK)
-			return ret;
 		snprintf (path, size, "%s/%s/%s", xpath, folder, file);
 	} else {
 		/* old style access */
@@ -380,7 +373,6 @@ folder_list_func (CameraFilesystem *fs, const char *folder, CameraList *list,
 				gp_context_error (context, _("Could not get information "
 							     "about '%s' (%s)."),
 						  buf, strerror(saved_errno));
-				gp_system_closedir (dir);
 				return GP_ERROR;
 			}
 			if (S_ISDIR (st.st_mode)) {
@@ -440,7 +432,7 @@ set_info_func (CameraFilesystem *fs, const char *folder, const char *file,
 	       CameraFileInfo info, void *data, GPContext *context)
 {
 	int retval;
-	char path[1024];
+	char path_old[1024], path_new[1024], path[1024];
 	Camera *camera = (Camera*)data;
 
 	retval = _get_path (camera->port, folder, file, path, sizeof(path));
@@ -552,7 +544,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 		}
 		exif_data_save_data (data, &buf, &buf_len);
 		exif_data_unref (data);
-		gp_file_set_data_and_size (file, (char *)buf, buf_len);
+		gp_file_set_data_and_size (file, buf, buf_len);
 		return (GP_OK);
 #endif /* HAVE_LIBEXIF */
 	default:
@@ -586,7 +578,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 			break;
 		}
 		curread += ret;
-		gp_file_append (file, (char *)buf, ret);
+		gp_file_append (file, buf, ret);
 		gp_context_progress_update (context, id, (1.0*curread/BLOCKSIZE));
 		gp_context_idle (context);
 		if (gp_context_cancel (context) == GP_CONTEXT_FEEDBACK_CANCEL) {

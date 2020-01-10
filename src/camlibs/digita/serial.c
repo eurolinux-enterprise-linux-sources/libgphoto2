@@ -17,8 +17,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -29,6 +29,8 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <termios.h>
+#include <unistd.h>
 #ifdef OS2
 #include <db.h>
 #endif
@@ -109,12 +111,12 @@ static int poll_and_wait(gp_port *dev, int length, int bob, int eob)
 		(bob ? POLL_BOB : 0) | (eob ? POLL_EOB : 0);
 
 	do {
-		s = htobe16(poll);
+		s = htons(poll);
 		if (gp_port_write(dev, (void *)&s, sizeof(s)) < 0)
 			return -1;
 		if (gp_port_read(dev, (void *)&s, sizeof(s)) < 0)
 			return -1;
-		poll_reply = be16toh(s);
+		poll_reply = ntohs(s);
 	} while (poll_reply & POLL_NAK);
 
 	return 0;
@@ -155,13 +157,13 @@ static int poll_and_reply(gp_port *dev, int *length, int *eob, int nak)
 	if (gp_port_read(dev, (void *)&s, sizeof(s)) < 0)
 		return -1;
 
-	poll = be16toh(s);
+	poll = ntohs(s);
 	if (length)
 		*length = poll & POLL_LENGTH_MASK;
 	if (eob)
 		*eob = poll & POLL_EOB;
 
-	s = htobe16(nak ? POLL_NAK : POLL_ACK);
+	s = htons(nak ? POLL_NAK : POLL_ACK);
 	if (gp_port_write(dev, (void *)&s, sizeof(s)) < 0)
 		return -1;
 
@@ -274,9 +276,9 @@ int digita_serial_open(CameraPrivateLibrary *dev, Camera *camera)
 		}
 
 		memcpy((void *)&s, &buffer[2], 2);
-		GP_DEBUG("Vendor: 0x%04x", be16toh(s));
+		GP_DEBUG("Vendor: 0x%04x", ntohs(s));
 		memcpy((void *)&s, &buffer[4], 2);
-		GP_DEBUG("Product: 0x%04x", be16toh(s));
+		GP_DEBUG("Product: 0x%04x", ntohs(s));
 
 		/*
 		 * Send the beacon acknowledgement
@@ -285,11 +287,11 @@ int digita_serial_open(CameraPrivateLibrary *dev, Camera *camera)
 		buffer[1] = 0xA5;
 		buffer[2] = 0x55;	/* I/F Type */
 		buffer[3] = 0;		/* Comm Flag */
-		l = htobe32(selected_speed);
+		l = htonl(selected_speed);
 		memcpy(&buffer[4], (void *)&l, 4);	/* Data speed */
-		s = htobe16(1023);
+		s = htons(1023);
 		memcpy(&buffer[8], (void *)&s, 2);	/* Device Frame Size */
-		s = htobe16(1023);
+		s = htons(1023);
 		memcpy(&buffer[10], (void *)&s, 2);	/* Host Frame Size */
 		buffer[12] = 0;
 		buffer[12] = checksum(buffer, BEACON_ACK_LENGTH);
@@ -315,11 +317,11 @@ int digita_serial_open(CameraPrivateLibrary *dev, Camera *camera)
 		}
 
 		memcpy((void *)&s, &buffer[6], sizeof(s));
-		dev->deviceframesize = be16toh(s);
+		dev->deviceframesize = ntohs(s);
 
 		memcpy((void *)&l, &buffer[2], sizeof(l));
-		GP_DEBUG("negotiated %d", be32toh(l));
-		settings.serial.speed = be32toh(l);
+		GP_DEBUG("negotiated %d", ntohl(l));
+		settings.serial.speed = ntohl(l);
 
 		usleep(100000);	/* Wait before */
 

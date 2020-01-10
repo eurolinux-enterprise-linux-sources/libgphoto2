@@ -2,7 +2,7 @@
 /* spca50x_sdram.h -  Gphoto2 library for cameras with sunplus  */
 /*                    spca50x chips                             */
 /*                                                              */
-/* Copyright 2002, 2003 Till Adam                               */
+/* Copyright © 2002, 2003 Till Adam                             */
 /*                                                              */
 /* Author: Till Adam <till@adam-lilienthal.de>                  */
 /*                                                              */
@@ -20,8 +20,8 @@
 /*                                                              */
 /* You should have received a copy of the GNU Library General   */
 /* Public License along with this library; if not, write to the */
-/* Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,*/
-/* Boston, MA  02110-1301  USA					*/
+/* Free Software Foundation, Inc., 59 Temple Place - Suite 330, */
+/* Boston, MA 02111-1307, USA.                                  */
 /****************************************************************/
 
 #ifndef __SPCA50X_SDRAM_H__

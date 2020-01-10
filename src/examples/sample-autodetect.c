@@ -51,6 +51,5 @@ int main(int argc, char **argv) {
 	}
 	gp_camera_exit (camera, context);
 	gp_camera_free (camera);
-	gp_context_unref (context);
 	return 0;
 }

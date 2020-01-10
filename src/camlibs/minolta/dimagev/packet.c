@@ -1,6 +1,6 @@
 /**********************************************************************
 *       Minolta Dimage V digital camera communication library         *
-*               Copyright 2000,2001 Gus Hartmann                      *
+*               Copyright © 2000,2001 Gus Hartmann                  *
 *                                                                     *
 *    This program is free software; you can redistribute it and/or    *
 *    modify it under the terms of the GNU General Public License as   *
@@ -13,17 +13,15 @@
 *    GNU General Public License for more details.                     *
 *                                                                     *
 *    You should have received a copy of the GNU General Public        *
-*    License along with this program; if not, write to the *
-*    Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-*    Boston, MA  02110-1301  USA
+*    License along with this program; if not, write to the Free       *
+*    Software Foundation, Inc., 59 Temple Place, Suite 330,           *
+*    Boston, MA 02111-1307 USA                                        *
 *                                                                     *
 **********************************************************************/
 
-/* $Id$ */
+/* $Id: packet.c 9739 2006-12-27 10:06:07Z hun $ */
 
 #include "config.h"
-
-#include <stdio.h>
 
 #include "dimagev.h"
 
@@ -111,37 +109,37 @@ dimagev_packet *dimagev_read_packet(dimagev_t *dimagev) {
 		return NULL;
 	}
 
-	if ( gp_port_read(dimagev->dev, (char *)p->buffer, 4) < GP_OK ) {
+	if ( gp_port_read(dimagev->dev, p->buffer, 4) < GP_OK ) {
 		GP_DEBUG( "dimagev_read_packet::unable to read packet header - will try to send NAK");
 		free(p);
 
 		/* Send a NAK */
 		char_buffer = DIMAGEV_NAK;
-		if ( gp_port_write(dimagev->dev, (char *)&char_buffer, 1) < GP_OK ) {
+		if ( gp_port_write(dimagev->dev, &char_buffer, 1) < GP_OK ) {
 			GP_DEBUG( "dimagev_read_packet::unable to send NAK");
 			return NULL;
 		}
 
 		/* Who likes recursion? */
-		return dimagev_read_packet(dimagev);
+		return ( p = dimagev_read_packet(dimagev));
 
 	}
 
 	p->length = ( p->buffer[2] * 256 ) + ( p->buffer[3] );
 
-	if ( gp_port_read(dimagev->dev, (char *)&(p->buffer[4]), ( p->length - 4)) < GP_OK ) {
+	if ( gp_port_read(dimagev->dev, &(p->buffer[4]), ( p->length - 4)) < GP_OK ) {
 		GP_DEBUG( "dimagev_read_packet::unable to read packet body - will try to send NAK");
 		free(p);
 
 		/* Send a NAK */
 		char_buffer = DIMAGEV_NAK;
-		if ( gp_port_write(dimagev->dev, (char *)&char_buffer, 1) < GP_OK ) {
+		if ( gp_port_write(dimagev->dev, &char_buffer, 1) < GP_OK ) {
 			GP_DEBUG( "dimagev_read_packet::unable to send NAK");
 			return NULL;
 		}
 
 		/* Who likes recursion? */
-		return dimagev_read_packet(dimagev);
+		return ( p = dimagev_read_packet(dimagev));
 
 	}
 
@@ -152,13 +150,13 @@ dimagev_packet *dimagev_read_packet(dimagev_t *dimagev) {
 		
 		/* Send a NAK */
 		char_buffer = DIMAGEV_NAK;
-		if ( gp_port_write(dimagev->dev, (char *)&char_buffer, 1) < GP_OK ) {
+		if ( gp_port_write(dimagev->dev, &char_buffer, 1) < GP_OK ) {
 			GP_DEBUG( "dimagev_read_packet::unable to send NAK");
 			return NULL;
 		}
 		
 		/* Who likes recursion? */
-		return dimagev_read_packet(dimagev);
+		return ( p = dimagev_read_packet(dimagev));
 
 	}
 

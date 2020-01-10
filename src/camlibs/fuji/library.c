@@ -1,6 +1,6 @@
 /* library.c:
  *
- * Copyright 2002 Lutz Mueller <lutz@users.sourceforge.net>
+ * Copyright © 2002 Lutz Müller <lutz@users.sourceforge.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -165,8 +165,7 @@ file_list_func (CameraFilesystem *fs, const char *folder, CameraList *list,
 		void *data, GPContext *context)
 {
 	Camera *camera = data;
-	int i;
-	unsigned int n;
+	int n, i;
 	const char *name;
 
 	/*
@@ -220,7 +219,7 @@ get_file_func (CameraFilesystem *fs, const char *folder,
 	default:
 		return (GP_ERROR_NOT_SUPPORTED);
 	}
-	CR (gp_file_set_data_and_size (file, (char *)d, size));
+	CR (gp_file_set_data_and_size (file, d, size));
 	CR (gp_file_set_mime_type (file, GP_MIME_JPEG));
 
 	return (GP_OK);
@@ -238,7 +237,7 @@ put_file_func (CameraFilesystem *fs, const char *folder, const char *name,
 		return GP_ERROR_BAD_PARAMETERS;
 	CR (gp_file_get_data_and_size (file, &d, &d_len));
 	CR (fuji_upload_init (camera, name, context));
-	return fuji_upload (camera, (unsigned char *)d, d_len, context);
+	return fuji_upload (camera, d, d_len, context);
 }
 
 static int
@@ -405,7 +404,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 	if ((gp_widget_get_child_by_label (window, _("Date & Time"),
 					   &widget) >= 0) &&
 	     gp_widget_changed (widget)) {
-	        gp_widget_set_changed (widget, 0);
 		CR (gp_widget_get_value (widget, &t));
 		tm = localtime (&t);
 		date.year  = tm->tm_year;
@@ -420,7 +418,6 @@ camera_set_config (Camera *camera, CameraWidget *window, GPContext *context)
 	/* ID */
 	if ((gp_widget_get_child_by_label (window, _("ID"), &widget) >= 0) &&
 	    gp_widget_changed (widget)) {
-	        gp_widget_set_changed (widget, 0);
 		CR (gp_widget_get_value (widget, &id));
 		CR (fuji_id_set (camera, id, context));
 	}

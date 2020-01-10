@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += barbie/Protocol.txt barbie/ChangeLog
 EXTRA_LTLIBRARIES += barbie.la
 

@@ -13,19 +13,18 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the 
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 #define _BSD_SOURCE
 #include "config.h"
 
 #include <string.h>
 #include <stdlib.h>
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_H)
+#ifdef HAVE_ICONV
 # include <langinfo.h>
 #endif
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 # include <gd.h>
 #endif
 
@@ -130,7 +129,7 @@ static int get_file_idx(CameraPrivateLibrary *pl, const char *folder,
 	return i;
 }
 
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 static void
 rotate90 (gdImagePtr src, gdImagePtr dest)
 {
@@ -181,7 +180,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 {
 	Camera *camera = data;
 	int idx, size;
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 	int ret;
 	gdImagePtr im, rotated;
 	void *gdpng;
@@ -204,7 +203,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 		return GP_OK;
 	}
 
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 	if (type != GP_FILE_TYPE_NORMAL)
 		return GP_ERROR_NOT_SUPPORTED;
 
@@ -253,13 +252,13 @@ static int
 put_file_func (CameraFilesystem *fs, const char *folder, const char *name, 
 	CameraFileType type, CameraFile *file, void *data, GPContext *context)
 {
-#ifdef HAVE_LIBGD
+#ifdef HAVE_GD
 	Camera *camera = data;
 	char *c, *in_name, *out_name, *filedata = NULL;
 	int ret, in_width, in_height, in_x, in_y;
 	size_t inc, outc;
 	double aspect_in, aspect_out;
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_H)
+#ifdef HAVE_ICONV
 	char *in, *out;
 #else
 	int i;
@@ -281,7 +280,7 @@ put_file_func (CameraFilesystem *fs, const char *folder, const char *name,
 	}
 
 	/* Convert name to ASCII */
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_H)
+#ifdef HAVE_ICONV
 	in = in_name;
 	out = out_name;
 	if (iconv (camera->pl->cd, &in, &inc, &out, &outc) == -1) {
@@ -594,7 +593,7 @@ camera_exit (Camera *camera, GPContext *context)
 		gp_setting_set ("st2205", "syncdatetime", buf);
 		gp_setting_set ("st2205", "orientation", orientation_to_string
 						(camera->pl->orientation));
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_H)
+#ifdef HAVE_ICONV
 		if (camera->pl->cd != (iconv_t) -1)
 			iconv_close (camera->pl->cd);
 #endif
@@ -609,7 +608,7 @@ int
 camera_init (Camera *camera, GPContext *context) 
 {
 	int i, j, ret;
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_H)
+#ifdef HAVE_ICONV
 	char *curloc;
 #endif
 	char buf[256];
@@ -643,7 +642,7 @@ camera_init (Camera *camera, GPContext *context)
 			camera->pl->orientation = ret;
 	}
 
-#if defined(HAVE_ICONV) && defined(HAVE_LANGINFO_H)
+#ifdef HAVE_ICONV
 	curloc = nl_langinfo (CODESET);
 	if (!curloc)
 		curloc="UTF-8";
@@ -699,20 +698,12 @@ camera_init (Camera *camera, GPContext *context)
 
 	/* Sync time if requested */
 	if (camera->pl->syncdatetime) {
-#ifdef HAVE_LOCALTIME_R
 		struct tm tm;
-#endif
-		struct tm *xtm;
 		time_t t;
 
 		t = time (NULL);
-
-#ifdef HAVE_LOCALTIME_R
-		if ((xtm = localtime_r (&t , &tm))) {
-#else
-		if ((xtm = localtime (&t))) {
-#endif
-			ret = st2205_set_time_and_date (camera, xtm);
+		if (localtime_r (&t , &tm)) {
+			ret = st2205_set_time_and_date (camera, &tm);
 			if (ret != GP_OK) {
 				camera_exit (camera, context);
 				return ret;

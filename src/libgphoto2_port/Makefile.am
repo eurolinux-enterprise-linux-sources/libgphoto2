@@ -5,7 +5,7 @@
 #     gmake usb.la
 # or  make usb.la
 #
-# If you only want to install a single iolib or two, run
+# If you only want to install a single camlib or two, run
 #     make IOLIB_LTLIST="usb.la ptpip.la" install-iolibLTLIBRARIES
 ########################################################################
 
@@ -25,7 +25,7 @@ udevscript_PROGRAMS =
 bin_SCRIPTS = gphoto2-port-config
 
 # The . stands for the current dir, i.e. the iolibs to build.
-SUBDIRS = po libgphoto2_port test . doc gphoto-m4
+SUBDIRS = po libgphoto2_port test . doc m4
 
 
 ########################################################################
@@ -55,7 +55,6 @@ include usb/Makefile-files
 include libusb1/Makefile-files
 include usbdiskdirect/Makefile-files
 include usbscsi/Makefile-files
-include vusb/Makefile-files
 
 
 ########################################################################
@@ -72,7 +71,7 @@ EXTRA_DIST +=   		\
 
 doc_DATA = AUTHORS README NEWS
 
-ACLOCAL_AMFLAGS = -I auto-m4 -I gphoto-m4
+ACLOCAL_AMFLAGS = -I auto-m4 -I m4
 
 EXTRA_DIST    += libgphoto2_port.pc.in
 pkgconfig_DATA = libgphoto2_port.pc

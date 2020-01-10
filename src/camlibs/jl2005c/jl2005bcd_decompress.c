@@ -19,9 +19,8 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the 
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #define _BSD_SOURCE
@@ -124,10 +123,10 @@ jl2005bcd_decompress (unsigned char *output, unsigned char *input,
 			return GP_ERROR_NOT_SUPPORTED;
 		} else {
 			out = malloc(thumbnail_width * thumbnail_height * 3);
-			thumb = (uint16_t *)(input + 16);
+			thumb = input + 16;
 			for (i = 0; i < thumbnail_width * thumbnail_height;
 									i++) {
-				thumb[i] = be16toh(thumb[i]);
+				thumb[i] = ntohs(thumb[i]);
 				out[i * 3 + 0] = (thumb[i] & 0xf800) >> 8;
 				out[i * 3 + 1] = (thumb[i] & 0x07e0) >> 3;
 				out[i * 3 + 2] = (thumb[i] & 0x001f) << 3;

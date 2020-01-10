@@ -1,7 +1,7 @@
 /** \file bayer.c
  * \brief Bayer array conversion routines.
  *
- * \author Copyright 2001 Lutz Mueller <lutz@users.sf.net>
+ * \author Copyright 2001 Lutz Müller <lutz@users.sf.net>
  * \author Copyright 2007 Theodore Kilgore <kilgota@auburn.edu>
  *
  * \par
@@ -24,8 +24,8 @@
  * \par
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -145,26 +145,26 @@ int
 gp_bayer_interpolate (unsigned char *image, int w, int h, BayerTile tile)
 {
 	int x, y, bayer;
-	int p0, p1, p2;
+	int p0, p1, p2, p3;
 	int value, div ;
 
 	switch (tile) {
 	default:
 	case BAYER_TILE_RGGB:
 	case BAYER_TILE_RGGB_INTERLACED:
-		p0 = 0; p1 = 1; p2 = 2;
+		p0 = 0; p1 = 1; p2 = 2; p3 = 3;
 		break;
 	case BAYER_TILE_GRBG:
 	case BAYER_TILE_GRBG_INTERLACED:
-		p0 = 1; p1 = 0; p2 = 3;
+		p0 = 1; p1 = 0; p2 = 3; p3 = 2;
 		break;
 	case BAYER_TILE_BGGR:
 	case BAYER_TILE_BGGR_INTERLACED:
-		p0 = 3; p1 = 2; p2 = 1;
+		p0 = 3; p1 = 2; p2 = 1; p3 = 0;
 		break;
 	case BAYER_TILE_GBRG:
 	case BAYER_TILE_GBRG_INTERLACED:
-		p0 = 2; p1 = 3; p2 = 0;
+		p0 = 2; p1 = 3; p2 = 0; p3 = 1;
 		break;
 	}
 

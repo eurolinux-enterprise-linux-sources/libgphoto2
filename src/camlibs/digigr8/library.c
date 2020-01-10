@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define _BSD_SOURCE
@@ -289,7 +289,6 @@ get_file_func(CameraFilesystem *fs, const char *folder, const char *filename,
 	p_data = malloc(w * h);
 	if (!p_data) {
 		status =  GP_ERROR_NO_MEMORY;
-		free (ppm);
 		goto end;
 	}
 	if(comp_ratio) {
@@ -355,28 +354,25 @@ camera_capture_preview(Camera *camera, CameraFile *file, GPContext *context)
 						| get_size[0x43]<<24;
 	GP_DEBUG("b = 0x%x\n", b);
 	raw_data = malloc(b);
-
-	if(!raw_data)
-		return GP_ERROR_NO_MEMORY;
-
-	if (!((gp_port_read(camera->port, (char *)raw_data, b)==b))) {
+	if(!raw_data) {
 		free(raw_data);
+		return GP_ERROR_NO_MEMORY;
+	}
+	if (!((gp_port_read(camera->port, (char *)raw_data, b)==b))) {
 		GP_DEBUG("Error in reading data\n");
 		return GP_ERROR;
 	}
 	frame_data = malloc(w * h);
 	if (!frame_data) {
-		free(raw_data);
+		free(frame_data);
 		return GP_ERROR_NO_MEMORY;
 	}
 	digi_decompress (frame_data, raw_data, w, h);
 	free(raw_data);
 	/* Now put the data into a PPM image file. */
 	ppm = malloc (w * h * 3 + 256);
-	if (!ppm) {
-		free(frame_data);
+	if (!ppm)
 		return GP_ERROR_NO_MEMORY;
-	}
 	snprintf ((char *)ppm, 64,
 		"P6\n"
 		"# CREATOR: gphoto2, SQ905C library\n"

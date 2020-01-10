@@ -15,14 +15,15 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
 #include <gphoto2/gphoto2-port-library.h>
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #ifdef HAVE_FCNTL_H
 # include <fcntl.h>
@@ -101,10 +102,10 @@ _ptpip_resolved (
 	char		path[200];
 
 	if (errorCode != kDNSServiceErr_NoError) {
-		GP_LOG_E ("Error on 2nd level query.");
+		gp_log (GP_LOG_ERROR, "ptpip", "Error on 2nd level query.");
 		return;
 	}
-	GP_LOG_D ("fullname %s, hosttarget %s, port %d", fullname, hosttarget, htons(port));
+	gp_log (GP_LOG_DEBUG, "ptpip", "fullname %s, hosttarget %s, port %d", fullname, hosttarget, htons(port));
 	cnt = TXTRecordGetCount (txtLen, txtRecord);
 	for (i=0;i<cnt;i++) {
 		char	key[256];
@@ -113,11 +114,11 @@ _ptpip_resolved (
 
 		valuelen = 0;
 		if (kDNSServiceErr_NoError == TXTRecordGetItemAtIndex (txtLen, txtRecord, i, sizeof(key), key, &valuelen, &value))
-			GP_LOG_D ("%d: %s:%s", i, key, (char*)value);
+			gp_log (GP_LOG_DEBUG, "ptpip", "%d: %s:%s", i, key, (char*)value);
 	}
 	hent = gethostbyname (hosttarget);
 	if (!hent) {
-		GP_LOG_E ("Could not resolve the returned host: %s", hosttarget);
+		gp_log (GP_LOG_ERROR, "ptpip", "Could not resolve the returned host: %s", hosttarget);
 		return;
 	}
 	memcpy(&inaddr.s_addr,hent->h_addr_list[0],hent->h_length);
@@ -140,10 +141,10 @@ _ptpip_enumerate (
 	DNSServiceRef		sd;
 
 	if (errorCode != kDNSServiceErr_NoError) {
-		GP_LOG_E ("Error on _ptp._tcp query.");
+		gp_log (GP_LOG_ERROR, "ptpip", "Error on _ptp._tcp query.");
 		return;
 	}
-	GP_LOG_D ("found %s, %s, %s", serviceName, regtype, replyDomain);
+	gp_log (GP_LOG_DEBUG, "ptpip", "found %s, %s, %s", serviceName, regtype, replyDomain);
 	mdnsi.list = context;
 	mdnsi.name = serviceName;
 	DNSServiceResolve (&sd,
@@ -183,7 +184,7 @@ gp_port_library_list (GPPortInfoList *list)
 	gp_port_info_set_type (info, GP_PORT_PTPIP);
 	gp_port_info_set_name (info, "");
 	gp_port_info_set_path (info, "^ptpip:");
-	gp_port_info_list_append (list, info); /* do not check return */
+	CHECK (gp_port_info_list_append (list, info));
 
 #ifdef HAVE_MDNS_BONJOUR
 	ret = DNSServiceBrowse (
@@ -211,16 +212,20 @@ gp_port_library_list (GPPortInfoList *list)
 
 static int gp_port_ptpip_init (GPPort *dev)
 {
-	C_MEM (dev->pl = calloc (1, sizeof (GPPortPrivateLibrary)));
-
+	dev->pl = malloc (sizeof (GPPortPrivateLibrary));
+	if (!dev->pl)
+		return GP_ERROR_NO_MEMORY;
+	memset (dev->pl, 0, sizeof(GPPortPrivateLibrary));
 	return GP_OK;
 }
 
 static int
 gp_port_ptpip_exit (GPPort *port)
 {
-	free (port->pl);
-	port->pl = NULL;
+	if (port->pl) {
+		free (port->pl);
+		port->pl = NULL;
+	}
 
 	return GP_OK;
 }
@@ -261,10 +266,10 @@ gp_port_library_operations (void)
 {
 	GPPortOperations *ops;
 
-	ops = calloc (1, sizeof (GPPortOperations));
+	ops = malloc (sizeof (GPPortOperations));
 	if (!ops)
 		return NULL;
-
+	memset (ops, 0, sizeof (GPPortOperations));
 	ops->init   = gp_port_ptpip_init;
 	ops->exit   = gp_port_ptpip_exit;
 	ops->open   = gp_port_ptpip_open;

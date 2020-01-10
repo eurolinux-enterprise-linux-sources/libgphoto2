@@ -1,6 +1,6 @@
 /* blink2.c
  *
- * Copyright 2004 Olivier Fauchon <olivier@aixmarseille.com>
+ * Copyright © 2004 Olivier Fauchon <olivier@aixmarseille.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,16 +14,19 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  *
  */
+
+#define _POSIX_C_SOURCE 199309L
 
 #include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <gphoto2/gphoto2-library.h>
 #include <gphoto2/gphoto2-port-log.h>
@@ -67,8 +70,8 @@ static char* enigma13_static_toc=NULL;
 static int enigma13_about (Camera *camera, CameraText *about, GPContext *context)
 {
         strcpy (about->text, _("Download program for Digital Dream Enigma 1.3. "
-                "by <olivier@aixmarseille.com>, and adapted from spca50x driver. "
-                "Thank you, spca50x team, it was easy to port your driver on this cam! "));
+                "by <olivier@aixmarseille.com>, and adapted from spca50x driver."
+                "Thanks you, spca50x team, it was easy to port your driver on this cam! "));
         return (GP_OK);
 }
 
@@ -198,7 +201,7 @@ static int enigma13_get_toc(Camera *camera, int *filecount, char** toc)
                            response, 0x0001,
                           NULL, 0x0000));
         /* Wait until cam is ready to send the T.O.C */
-	usleep(ENIGMA13_WAIT_TOC_DELAY_MS * 1000);
+	GP_SYSTEM_SLEEP(ENIGMA13_WAIT_TOC_DELAY_MS);
 
         CHECK (gp_port_usb_msg_read (camera->port, 0x21,
                            0x0000, 0x0000,
@@ -245,7 +248,7 @@ static int enigma13_download_img(Camera *camera, char *toc, int index, char **im
 
 	/* Offset for image informations .
 	Each image has 16 bytes for name and 16 for size, and others*/
-	p = (uint8_t *)toc + (index*2)*32;
+	p = toc + (index*2)*32;
 
 	/* real size from toc*/
 	aligned_size = file_size =
@@ -275,7 +278,7 @@ static int enigma13_download_img(Camera *camera, char *toc, int index, char **im
 
 	CHECK_AND_FREE (gp_port_usb_msg_write (camera->port,
 	0x54, index+1, 2, NULL, 0x00), buf);
-	usleep(ENIGMA13_WAIT_IMAGE_READY_MS * 1000);
+	GP_SYSTEM_SLEEP(ENIGMA13_WAIT_IMAGE_READY_MS);
 
 	CHECK_AND_FREE (gp_port_usb_msg_read (camera->port, 0x21,
 		0x0000, 0x0000,

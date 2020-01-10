@@ -1,6 +1,6 @@
 /* ez200.c
  *
- * Copyright (C) 2004 Bucas Jean-Francois <jfbucas@tuxfamily.org>
+ * Copyright (C) 2004 Bucas Jean-François <jfbucas@tuxfamily.org>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include <config.h>
@@ -108,7 +108,7 @@ ez200_get_picture_size (GPPort *port, int n) {
 
 	GP_DEBUG("Running ez200_get_picture_size");
 
-	READ(port, PICTURE, n, 1, (char *)c, 3);
+    	READ(port, PICTURE, n, 1, c, 3);
 	size = (int)c[0] + (int)c[1]*0x100 + (int)c[2]*0x10000;
 
 	GP_DEBUG(" size of picture %i is 0x%x = %i byte(s)", n, size, size);
@@ -256,7 +256,6 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 
 	len = ez200_get_picture_size (camera->port, n);
 	GP_DEBUG("len = %i", len);
-	if (len < GP_OK) return len;
 
 	data = (char *)malloc(len + HEADER_SIZE + 1);
 	if (!data) return GP_ERROR_NO_MEMORY;

@@ -1,6 +1,6 @@
 /* pdrm11.c -- interfaces directly with the camera
  *
- * Copyright 2003 David Hogue <david@jawa.gotdns.org>
+ * Copyright © 2003 David Hogue <david@jawa.gotdns.org>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -23,6 +23,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <gphoto2/gphoto2.h>
 #include "gphoto2-endian.h"
@@ -40,15 +41,15 @@ int pdrm11_init(GPPort *port)
 	gp_port_set_timeout(port,1000);
 
 	/* exactly what windows driver does */
-	gp_port_usb_msg_read (port, 0x01, PDRM11_CMD_READY, 0, (char *)buf, 4);
+	gp_port_usb_msg_read (port, 0x01, PDRM11_CMD_READY, 0, buf, 4);
 	gp_port_usb_msg_write(port, 0x01, PDRM11_CMD_PING3, 0, NULL, 0);
-	gp_port_usb_msg_read (port, 0x01, PDRM11_CMD_READY, 0, (char *)buf, 4);
+	gp_port_usb_msg_read (port, 0x01, PDRM11_CMD_READY, 0, buf, 4);
 	gp_port_usb_msg_write(port, 0x01, PDRM11_CMD_INIT1, 0, NULL, 0);
-	gp_port_usb_msg_read (port, 0x01, PDRM11_CMD_READY, 0, (char *)buf, 4);
+	gp_port_usb_msg_read (port, 0x01, PDRM11_CMD_READY, 0, buf, 4);
 	gp_port_usb_msg_write(port, 0x01, PDRM11_CMD_INIT2, 0, NULL, 0);
-	gp_port_usb_msg_read (port, 0x01, PDRM11_CMD_READY, 0, (char *)buf, 4);
+	gp_port_usb_msg_read (port, 0x01, PDRM11_CMD_READY, 0, buf, 4);
 
-	gp_port_usb_msg_read (port, 0x01, PDRM11_CMD_ZERO, 0, (char *)buf, 2);
+	gp_port_usb_msg_read (port, 0x01, PDRM11_CMD_ZERO, 0, buf, 2);
 	if(buf[0] || buf[1]) {
 		/* I haven't seen anything other than 00 00 yet
 		 * unless the connection is bad */
@@ -63,7 +64,7 @@ int pdrm11_init(GPPort *port)
 		GP_DEBUG("waiting...");
 
 		timeout--;
-		if( gp_port_usb_msg_read(port, 0x01, PDRM11_CMD_READY, 0, (char *)buf, 4) == -ETIMEDOUT )
+		if( gp_port_usb_msg_read(port, 0x01, PDRM11_CMD_READY, 0, buf, 4) == -ETIMEDOUT )
 			timeout = 0;
 	} while( !((buf[3] == 0x25) && (buf[0] == 1)) && timeout );
 	
@@ -160,10 +161,10 @@ int pdrm11_get_file(CameraFilesystem *fs, const char *filename, CameraFileType t
 	CHECK( pdrm11_select_file(port, picNum) );
 
 	if(type == GP_FILE_TYPE_PREVIEW) {
-		CHECK(gp_port_usb_msg_read(port, 0x01, PDRM11_CMD_GET_INFO, picNum, (char *)buf, 8));
+		CHECK(gp_port_usb_msg_read(port, 0x01, PDRM11_CMD_GET_INFO, picNum, buf, 8));
 		file_type = buf[4];
 
-		CHECK( gp_port_usb_msg_read(port, 0x01, PDRM11_CMD_GET_THUMBSIZE, picNum, (char *)buf, 14) );
+		CHECK( gp_port_usb_msg_read(port, 0x01, PDRM11_CMD_GET_THUMBSIZE, picNum, buf, 14) );
 		thumbsize = le16atoh( &buf[8] );
 		
 		/* add 1 to file size only for jpeg thumbnails */
@@ -180,7 +181,7 @@ int pdrm11_get_file(CameraFilesystem *fs, const char *filename, CameraFileType t
 		}
 
 	} else if(type == GP_FILE_TYPE_NORMAL) {
-		CHECK( gp_port_usb_msg_read(port, 0x01, PDRM11_CMD_GET_FILESIZE, picNum, (char *)buf, 26) );
+		CHECK( gp_port_usb_msg_read(port, 0x01, PDRM11_CMD_GET_FILESIZE, picNum, buf, 26) );
 		size = le32atoh( &buf[18] );
 	} else {
 		GP_DEBUG("Unsupported file type!");
@@ -201,10 +202,10 @@ int pdrm11_get_file(CameraFilesystem *fs, const char *filename, CameraFileType t
 		CHECK_AND_FREE( gp_port_usb_msg_write(port, 0x01, PDRM11_CMD_GET_PIC, picNum, NULL, 0), image );
 	}
 
-	ret = gp_port_read(port, (char *)image, size);
+	ret = gp_port_read(port, image, size);
 	if(ret != size) {
 		GP_DEBUG("failed to read from port.  Giving it one more try...");
-		ret = gp_port_read(port, (char *)image, size);
+		ret = gp_port_read(port, image, size);
 		if(ret != size) {
 			GP_DEBUG("gp_port_read returned %d 0x%x.  size: %d 0x%x", ret, ret, size, size);
 			free (image);
@@ -223,7 +224,7 @@ int pdrm11_get_file(CameraFilesystem *fs, const char *filename, CameraFileType t
 	
 
 	gp_file_set_mime_type(file, GP_MIME_JPEG);
-	gp_file_set_data_and_size(file, (char *)image, size);
+	gp_file_set_data_and_size(file, image, size);
 
 	return(GP_OK);
 }
@@ -240,7 +241,7 @@ int pdrm11_delete_file(GPPort *port, int picNum)
 	CHECK( pdrm11_select_file(port, picNum) );
 
 	/* should always be 00 00 */
-	gp_port_usb_msg_read(port, 0x01, PDRM11_CMD_DELETE, picNum, (char *)buf, 2);
+	gp_port_usb_msg_read(port, 0x01, PDRM11_CMD_DELETE, picNum, buf, 2);
 	if( (buf[0] != 0) || (buf[1] !=0) ) {
 		GP_DEBUG("should have read 00 00.  actually read %2x %2x.", buf[0], buf[1]);
 		return(GP_ERROR);

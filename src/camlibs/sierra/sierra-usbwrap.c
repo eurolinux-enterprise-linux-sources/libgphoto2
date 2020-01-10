@@ -1,7 +1,6 @@
 /* sierra_usbwrap.c
  *
- * Copyright 2002 Lutz Mueller <lutz@users.sourceforge.net>
- * Copyright 2012-2013 Marcus Meissner <marcus@jet.franken.de>
+ * Copyright © 2002 Lutz Müller <lutz@users.sourceforge.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  * 
  *
  * Olympus C-3040Z (and possibly also the C-2040Z and others) have
@@ -124,37 +123,7 @@ cmdbyte (unsigned int type, unsigned char nr) {
 #define UW_PACKET_DATA ((uw4c_t){ 0x02, 0x00, 0xff, 0x9f })
 #define UW_PACKET_STAT ((uw4c_t){ 0x03, 0x00, 0xff, 0x9f })
 
-#define UW_MAGIC_OUT ((uw4c_t){ 'U','S','B','C' })
-#define UW_MAGIC_IN  ((uw4c_t){ 'U','S','B','S' })
-
 #pragma pack(1)
-/* This is linux/include/linux/usb/storage.h, struct bulk_cb_wrap
- * 31 byte length */
-typedef struct
-{
-      uw4c_t magic;             /* The letters U S B C for packets sent to camera */
-      uw32_t tag;               /* The SCSI command tag */
-      uw32_t rw_length;         /* Length of data to be read or written next */
-      unsigned char flags;      /* in / out flag mostly */
-      unsigned char lun;        /* 0 here */
-      unsigned char length;     /* of the CDB... but 0x0c is used here in the traces */
-      unsigned char cdb[16];    
-} uw_header_t;
-
-/*
- * This is the end response block from the camera looks like this:
- *
- * This is the generic bulk style USB Storage response block.
- *
- * linux/include/linux/usb/storage.h, struct bulk_cs_wrap */
-typedef struct
-{
-      uw4c_t magic;     /* The letters U S B S for packets from camera */
-      uw32_t tag;       /* A copy of whatever value the host made up */
-      uw32_t residue;   /* residual read? */
-      char   status;    /* status byte */
-} uw_response_t;
-
 /*
  * Data packet sent along with a UW_REQUEST_RDY:
  */
@@ -196,6 +165,16 @@ typedef struct
       uw32_t size;             /* The size of data waiting to be sent by camera */
 } uw_size_t;
 
+/*
+ * The end of the response from the camera looks like this:
+ */
+typedef struct
+{
+      uw4c_t magic;    /* The letters U S B S for packets from camera */
+      uw32_t sessionid;        /* A copy of whatever value the host made up */
+      char   zero[5];  /* 00 00 00 00 00 */
+} uw_response_t;
+
 typedef struct
 {
       unsigned char cmd;
@@ -204,99 +183,6 @@ typedef struct
       char   zero2[3];
 } uw_scsicmd_t;
 #pragma pack()
-
-static int ums_tag = 0x42424242;
-
-static int
-scsi_wrap_cmd(
-	GPPort *dev, int todev,
-	char *cmd, unsigned int cmdlen,
-	char *sense, unsigned int senselen,
-	char *data, unsigned int size
-) {
-	GPPortInfo	info;
-	GPPortType	type;
-	uw_header_t	hdr;
-	uw_response_t	rsp;
-	int		ret;
-
-	ret = gp_port_get_info (dev, &info);
-	if (ret != GP_OK) return ret;
-
-	ret = gp_port_info_get_type (info, &type);
-	if (ret != GP_OK) return ret;
-
-	if (type == GP_PORT_USB_SCSI)
-		/* just send it to the generic SCSI stack */
-		return gp_port_send_scsi_cmd (
-			dev, todev,
-			cmd, cmdlen,
-			sense, senselen,
-			data, size
-		);
-
-	/* Assuming plain USB, emulating SCSI ... */
-
-	memset(&hdr, 0, sizeof(hdr));
-	hdr.magic	= UW_MAGIC_OUT;
-	hdr.tag		= uw_value(ums_tag);
-	ums_tag++;
-	hdr.rw_length	= uw_value(size);
-	hdr.length	= 12; /* seems to be always 12, even as we send 16 byte CDBs */
-	hdr.flags	= todev?0:(1<<7);
-	hdr.lun		= 0;
-
-	memcpy(hdr.cdb, cmd, cmdlen);
-
-	/* WRITE scsi header / cdb */
-	if ((ret=gp_port_write(dev, (char*)&hdr, sizeof(hdr))) < GP_OK) {
-		GP_DEBUG( "scsi_wrap_cmd *** FAILED to write scsi cmd" );
-		return GP_ERROR_IO;
-	}
-	/* WRITE / READ data blob */
-	if (todev) {
-		if ((ret=gp_port_write(dev, (char*)data, size)) < GP_OK) {
-			GP_DEBUG( "scsi_wrap_cmd *** FAILED to write scsi data" );
-			return GP_ERROR_IO;
-		}
-	} else {
-		if ((ret=gp_port_read(dev, (char*)data, size)) < GP_OK) {
-			GP_DEBUG( "scsi_wrap_cmd *** FAILED to read scsi data" );
-			return GP_ERROR_IO;
-		}
-	}
-
-	/* READ RESPONSE */
-	memset(&rsp, 0, sizeof(rsp));
-
-	GP_DEBUG( "usb_wrap_OK" );
-	if ((ret = gp_port_read(dev, (char*)&rsp, sizeof(rsp))) != sizeof(rsp)) {
-		gp_log (GP_LOG_DEBUG, GP_MODULE, "scsi_wrap_cmd *** FAILED (%d vs %d bytes)", (int)sizeof(rsp), ret );
-		if (ret < GP_OK)
-			return ret;
-		return GP_ERROR;
-	}
-	if (	!UW_EQUAL(rsp.magic, UW_MAGIC_IN) ||
-		!UW_EQUAL(rsp.tag, hdr.tag))
-	{
-		GP_DEBUG( "scsi_wrap_cmd wrong session *** FAILED" );
-		return GP_ERROR;
-	}
-	/*
-	 * 32bit residual length (0) and 8 bit status (0) are good.
-	 */
-	if (	rsp.residue.c1 != 0 ||
-		rsp.residue.c2 != 0 ||
-		rsp.residue.c3 != 0 ||
-		rsp.residue.c4 != 0 ||
-		rsp.status != 0) {
-		GP_DEBUG( "Error: scsi_wrap_cmd - residual non-0 or status %x", rsp.status);
-		return GP_ERROR;
-	}
-	return GP_OK;
-}
-
-#define gp_port_send_scsi_cmd scsi_wrap_cmd
 
 static int
 usb_wrap_RDY(gp_port* dev, unsigned int type)
@@ -319,7 +205,7 @@ usb_wrap_RDY(gp_port* dev, unsigned int type)
    	 sense_buffer, sizeof(sense_buffer), (char*)&msg, sizeof(msg));
    if (ret<GP_OK)
       GP_DEBUG( "usb_wrap_RDY *** FAILED" );
-   return ret;
+   return GP_OK;
 }
 
 static int
@@ -344,7 +230,9 @@ usb_wrap_STAT(gp_port* dev, unsigned int type)
    if (ret < GP_OK)
    {
       GP_DEBUG( "usb_wrap_STAT *** FAILED" );
-      return ret;
+      if (ret < GP_OK)
+	return ret;
+      return GP_ERROR;
    }
 
    xlen = uw_value(sizeof(msg));
@@ -422,7 +310,9 @@ usb_wrap_SIZE(gp_port* dev, unsigned int type, uw32_t* size)
    if (ret < GP_OK)
    {
       GP_DEBUG( "usb_wrap_SIZE *** FAILED" );
-      return ret;
+      if (ret < GP_OK)
+	return ret;
+      return GP_ERROR;
    }
    xlen = uw_value(sizeof(msg));
    if (!UW_EQUAL(msg.length, xlen) || !UW_EQUAL(msg.packet_type, UW_PACKET_DATA))
@@ -466,12 +356,12 @@ usb_wrap_DATA (GPPort *dev, unsigned int type, char *sierra_response, int *sierr
    }
    *sierra_len = msg_len - sizeof(*msg);
 
-   msg = (uw_pkout_sierra_hdr_t*)calloc(msg_len,1);
-
+   msg = (uw_pkout_sierra_hdr_t*)malloc(msg_len);
    memset(&cmd, 0, sizeof(cmd));
    cmd.cmd 	= cmdbyte(type, 2);
    cmd.length	= uw_value(msg_len);
 
+   memset(msg, 0, sizeof(msg));
    ret = gp_port_send_scsi_cmd (dev, 0, (char*)&cmd, sizeof(cmd),
    	 sense_buffer, sizeof(sense_buffer), (char*)msg, msg_len);
 

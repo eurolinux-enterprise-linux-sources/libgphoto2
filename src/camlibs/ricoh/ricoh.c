@@ -1,6 +1,6 @@
 /* ricoh.c
  *
- * Copyright 2002 Lutz Mueller <lutz@users.sourceforge.net>
+ * Copyright © 2002 Lutz Müller <lutz@users.sourceforge.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -98,9 +98,7 @@ ricoh_send (Camera *camera, GPContext *context, unsigned char cmd,
 	/* First, make sure there is no data coming from the camera. */
 	CR (gp_port_get_timeout (camera->port, &timeout));
 	CR (gp_port_set_timeout (camera->port, 20));
-	while (gp_port_read (camera->port, (char *)buf, 1) >= 0) {
-	  /* do nothing */
-	}
+	while (gp_port_read (camera->port, buf, 1) >= 0);
 	CR (gp_port_set_timeout (camera->port, timeout));
 
 	/* Write header */
@@ -108,7 +106,7 @@ ricoh_send (Camera *camera, GPContext *context, unsigned char cmd,
 	buf[1] = STX;
 	buf[2] = cmd;
 	buf[3] = len;
-	CR (gp_port_write (camera->port, (char *)buf, 4));
+	CR (gp_port_write (camera->port, buf, 4));
 	crc = updcrc (cmd, crc);
 	crc = updcrc (len, crc);
 
@@ -126,7 +124,7 @@ ricoh_send (Camera *camera, GPContext *context, unsigned char cmd,
 				break;
 			}
 		}
-		CR (gp_port_write (camera->port, (char *)data + w, i - w));
+		CR (gp_port_write (camera->port, data + w, i - w));
 		if (data[i - 1] == 0x10)
 			CR (gp_port_write (camera->port, "\x10", 1));
 		w = i;
@@ -139,7 +137,7 @@ ricoh_send (Camera *camera, GPContext *context, unsigned char cmd,
 	buf[3] = crc >> 8;
 	buf[4] = len + 2;
 	buf[5] = number;
-	CR (gp_port_write (camera->port, (char *)buf, 6));
+	CR (gp_port_write (camera->port, buf, 6));
 
 	return (GP_OK);
 }
@@ -174,7 +172,7 @@ ricoh_recv (Camera *camera, GPContext *context, unsigned char *cmd,
 		 * drop that and read on.
 		 */
 		for (i = 0, buf[1] = ACK; i < 4; i++) {
-			CR (gp_port_read (camera->port, (char *)buf, 2));
+			CR (gp_port_read (camera->port, buf, 2));
 			if (buf[0] != DLE) {
 				gp_context_error (context, _("We expected "
 					"0x%x but received 0x%x. Please "
@@ -197,8 +195,8 @@ ricoh_recv (Camera *camera, GPContext *context, unsigned char *cmd,
 			return GP_ERROR_CORRUPTED_DATA;
 		}
 
-		CR (gp_port_read (camera->port, (char *)cmd, 1));
-		CR (gp_port_read (camera->port, (char *)len, 1));
+		CR (gp_port_read (camera->port, cmd, 1));
+		CR (gp_port_read (camera->port, len, 1));
 		crc = updcrc (*cmd, crc);
 		crc = updcrc (*len, crc);
 
@@ -209,7 +207,7 @@ ricoh_recv (Camera *camera, GPContext *context, unsigned char *cmd,
 		r = 0;
 		last_dle = 0;
 		while (r < *len) {
-			CR (gp_port_read (camera->port, (char *)data + r, *len - r));
+			CR (gp_port_read (camera->port, data + r, *len - r));
 			if (last_dle) {
 				r++;
 				last_dle = 0;
@@ -238,7 +236,7 @@ ricoh_recv (Camera *camera, GPContext *context, unsigned char *cmd,
 		}
 
 		/* Get footer */
-		CR (gp_port_read (camera->port, (char *)buf, 6));
+		CR (gp_port_read (camera->port, buf, 6));
 
 		if ((buf[0] != DLE) || (buf[1] != ETX && buf[1] != ETB))
 			return (GP_ERROR_CORRUPTED_DATA);
@@ -445,7 +443,7 @@ ricoh_get_pic_name (Camera *camera, GPContext *context, unsigned int n,
 	CR (ricoh_transmit (camera, context, 0x95, p, 3, buf, &len));
 
 	if (name && *name) {
-		*name = (char *)buf;
+		*name = buf;
 		buf[len] = '\0';
 	}
 
@@ -467,7 +465,7 @@ ricoh_get_pic_memo (Camera *camera, GPContext *context, unsigned int n,
 	CR (ricoh_transmit (camera, context, 0x95, p, 3, buf, &len));
 
 	if (memo && *memo) {
-		*memo = (char *)buf;
+		*memo = buf;
 		buf[len] = '\0';
 	}
 
@@ -774,10 +772,10 @@ ricoh_get_copyright (Camera *camera, GPContext *context, const char **copyright)
 	static char buf[1024];
 
 	p[0] = 0x0f;
-	CR (ricoh_transmit (camera, context, 0x51, p, 1, (unsigned char *)buf, &len));
+	CR (ricoh_transmit (camera, context, 0x51, p, 1, buf, &len));
 
 	if (copyright && *copyright) {
-		*copyright = (char *)buf;
+		*copyright = buf;
 		buf[len] = '\0';
 	}
 
@@ -790,7 +788,7 @@ ricoh_set_copyright (Camera *camera, GPContext *context, const char *copyright)
 	unsigned char p[21], len, buf[0xff];
 
 	p[0] = 0x0f;
-	strncpy ((char *)p + 1, copyright, 20);
+	strncpy (p + 1, copyright, 20);
 	CR (ricoh_transmit (camera, context, 0x50, p, 21, buf, &len));
 
 	return (GP_OK);
@@ -822,7 +820,7 @@ ricoh_put_file (Camera *camera, GPContext *context, const char *name,
 {
 	RicohMode mode;
 	unsigned char p[16], len, buf[0xff], block[0xff];
-	unsigned int i, pr;
+	unsigned int pic_num, i, pr;
 
 	CR (ricoh_get_mode (camera, context, &mode));
 	if (mode != RICOH_MODE_PLAY)
@@ -832,11 +830,11 @@ ricoh_put_file (Camera *camera, GPContext *context, const char *name,
 	if (strlen (name) > 12) {
 		gp_context_error (context, _("The filename's length must not "
 			"exceed 12 characters ('%s' has %i characters)."),
-			name, (int)strlen (name));
+			name, strlen (name));
 		return (GP_ERROR);
 	}
 
-	strncpy ((char *)p, name, 12);
+	strncpy (p, name, 12);
 	p[12] = size << 24;
 	p[13] = size << 16;
 	p[14] = size << 8;
@@ -848,6 +846,7 @@ ricoh_put_file (Camera *camera, GPContext *context, const char *name,
 	 * We just received the picture number of the new file. We don't 
 	 * need it.
 	 */
+	pic_num = buf[0] | (buf[1] << 8);
 
 	/* Now send the data */
 	pr = gp_context_progress_start (context, size, _("Uploading..."));

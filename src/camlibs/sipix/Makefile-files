@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += sipix/web2.html sipix/blink.c sipix/blink.txt \
 	sipix/xjpeg.c sipix/blink2.txt sipix/ChangeLog
 

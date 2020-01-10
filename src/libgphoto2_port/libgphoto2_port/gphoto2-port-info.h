@@ -17,8 +17,8 @@
  * \par
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #ifndef GPHOTO_PORT_INFO_H
@@ -32,7 +32,7 @@
 struct _GPPortInfo {
 	GPPortType type;	/**< \brief The type of this port. */
 	char *name;		/**< \brief The name of this port (usb:) */
-	char *path;		/**< \brief The path of this port (usb:001,023) */
+	char *path;		/**< \brief The path of this port (whatever is after the :) */
 
 	/* Private */
 	char *library_filename;	/**< \brief Internal pathname of the port driver. Do not use outside of the port library. */

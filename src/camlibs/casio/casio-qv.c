@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -132,17 +132,17 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 
 	switch (type) {
 	case GP_FILE_TYPE_RAW:
-		CHECK_RESULT (QVgetCAMpic (camera, &data, (long unsigned *)&size, attr&2));
+		CHECK_RESULT (QVgetCAMpic (camera, &data, &size, attr&2));
 		CHECK_RESULT (gp_file_set_mime_type(file, GP_MIME_RAW));
 		break;
 	case GP_FILE_TYPE_PREVIEW:
-		CHECK_RESULT (QVgetYCCpic (camera, &cam, (long unsigned *)&camSize));
+		CHECK_RESULT (QVgetYCCpic (camera, &cam, &camSize));
 		CHECK_RESULT (QVycctoppm(cam, camSize, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, 2, &data, &size));
 		free(cam);
 		CHECK_RESULT (gp_file_set_mime_type (file, GP_MIME_PPM));
 		break;
 	case GP_FILE_TYPE_NORMAL:
-		CHECK_RESULT (QVgetCAMpic (camera, &cam, (long unsigned *)&camSize, attr&2));
+		CHECK_RESULT (QVgetCAMpic (camera, &cam, &camSize, attr&2));
 		CHECK_RESULT ((attr&2 ? QVfinecamtojpeg : QVcamtojpeg)(cam, camSize, &data, &size));
 		free(cam);
 		CHECK_RESULT (gp_file_set_mime_type (file, GP_MIME_JPEG));

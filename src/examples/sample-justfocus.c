@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -43,7 +44,7 @@ int main(int argc, char *argv[]){
 
         if(argc == 1)
         {
-                retval = camera_auto_focus(camera, context, 1);
+                retval = camera_auto_focus(camera, context);
 		if(retval != GP_OK) {
 			printf("Error: %s\n", gp_result_as_string(retval));
 			return 1;
@@ -61,12 +62,6 @@ int main(int argc, char *argv[]){
 	do {
 		retval = gp_camera_wait_for_event (camera, 10, &evttype, &evtdata, context);
 	} while ((retval == GP_OK) && (evttype != GP_EVENT_TIMEOUT));
-
-	retval = camera_auto_focus(camera, context, 0);
-	if(retval != GP_OK) {
-		printf("Error: %s\n", gp_result_as_string(retval));
-		return 1;
-	}
 
         gp_camera_exit(camera, context);
         return 0;

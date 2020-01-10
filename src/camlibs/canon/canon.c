@@ -3,7 +3,7 @@
  *
  * Written 1999 by Wolfgang G. Reissnegger and Werner Almesberger
  * Additions 2000 by Philippe Marzouk and Edouard Lafargue
- * USB support, 2000, by Mikael Nystroem
+ * USB support, 2000, by Mikael Nyström
  *
  * This file includes both USB and serial support for the cameras
  * manufactured by Canon. These comprise all (or at least almost all)
@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <unistd.h>
 #include <ctype.h>
 
 #ifdef TM_IN_SYS_TIME
@@ -124,7 +125,7 @@ const struct canonCamModelData models[] = {
         /* 3042 is a scanner, so it will never be added here. */
         {"Canon:PowerShot S20",         CANON_CLASS_0,  0x04A9, 0x3043, CAP_NON, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, "Canon PowerShot S20"},
         {"Canon:EOS D30",               CANON_CLASS_4,  0x04A9, 0x3044, CAP_SUP, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
-        {"Canon:PowerShot S100 (2000)", CANON_CLASS_0,  0x04A9, 0x3045, CAP_NON, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
+        {"Canon:PowerShot S100",        CANON_CLASS_0,  0x04A9, 0x3045, CAP_NON, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
         {"Canon:IXY DIGITAL",           CANON_CLASS_0,  0x04A9, 0x3046, CAP_NON, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
         {"Canon:Digital IXUS",          CANON_CLASS_0,  0x04A9, 0x3047, CAP_NON, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
         {"Canon:PowerShot G1",          CANON_CLASS_0,  0x04A9, 0x3048, CAP_SUP, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, "Canon PowerShot G1"},
@@ -138,7 +139,7 @@ const struct canonCamModelData models[] = {
         /* Mac OS includes this as a valid ID; don't know which camera model --swestin */
         {"Canon:PowerShot unknown 1",   CANON_CLASS_1,  0x04A9, 0x3050, CAP_SUP, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
         /* Canon IXY DIGITAL 200 here? */
-        {"Canon:PowerShot S110 (2001)", CANON_CLASS_0,  0x04A9, 0x3051, CAP_SUP, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
+        {"Canon:PowerShot S110",        CANON_CLASS_0,  0x04A9, 0x3051, CAP_SUP, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
         {"Canon:Digital IXUS v",        CANON_CLASS_0,  0x04A9, 0x3052, CAP_SUP, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
 
         {"Canon:PowerShot G2",          CANON_CLASS_1,  0x04A9, 0x3055, CAP_SUP, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
@@ -201,8 +202,12 @@ const struct canonCamModelData models[] = {
         {"Canon:MVX150i (normal mode)", CANON_CLASS_1,  0x04A9, 0x3080, CAP_SUP, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
         /* Sighted at
          * <http://www.qbik.ch/usb/devices/showdescr.php?id=2232>. */
-        {"Canon:MVX100i",               CANON_CLASS_1,  0x04A9, 0x3081, CAP_SUP, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
-        {"Canon:Optura 10",             CANON_CLASS_1,  0x04A9, 0x3082, CAP_SUP, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
+        {"Canon:Optura 10",             CANON_CLASS_1,  0x04A9, 0x3081, CAP_SUP, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
+        {"Canon:MVX100i",               CANON_CLASS_1,  0x04A9, 0x3081, CAP_NON, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
+
+
+        {"Canon:Optura 10",             CANON_CLASS_1,  0x04A9, 0x3082, CAP_NON, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
+        {"Canon:MVX100i",               CANON_CLASS_1,  0x04A9, 0x3082, CAP_NON, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
         {"Canon:EOS 10D",               CANON_CLASS_4,  0x04A9, 0x3083, CAP_SUP, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
         {"Canon:EOS 300D (normal mode)", CANON_CLASS_4, 0x04A9, 0x3084, CAP_SUP, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
         {"Canon:EOS Digital Rebel (normal mode)",CANON_CLASS_4, 0x04A9, 0x3084, CAP_SUP, SL_MOVIE_SMALL, SL_THUMB, SL_PICTURE, NULL},
@@ -277,14 +282,11 @@ const struct canonCamModelData models[] = {
         {"Canon:PowerShot A95 (normal mode)",   CANON_CLASS_5,  0x04A9, 0x30bb, CAP_SUP, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
 
         /* 0x30bf is PowerShot SD300/Digital IXUS 40 in PTP mode */
-#endif
         /* Another block of cameras that share the ID for PTP and Canon modes */
-	/* keep these enabled as the PTP variant does not support capture */
         {"Canon:PowerShot SD200 (normal mode)", CANON_CLASS_6,  0x04A9, 0x30c0, CAP_SUP, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
         {"Canon:Digital IXUS 30 (normal mode)", CANON_CLASS_6,  0x04A9, 0x30c0, CAP_SUP, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
         {"Canon:IXY Digital 40 (normal mode)",  CANON_CLASS_6,  0x04A9, 0x30c0, CAP_SUP, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
 
-#if 0
         {"Canon:PowerShot SD400 (normal mode)", CANON_CLASS_4,  0x04A9, 0x30c1, CAP_NON, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
         {"Canon:Digital IXUS 50 (normal mode)", CANON_CLASS_4,  0x04A9, 0x30c1, CAP_NON, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
         {"Canon:IXY Digital 55 (normal mode)",  CANON_CLASS_4,  0x04A9, 0x30c1, CAP_NON, SL_MOVIE_LARGE, SL_THUMB, SL_PICTURE, NULL},
@@ -405,7 +407,7 @@ replace_filename_extension(const char *filename, const char __unused__ *newext)
                 return buf;
         } else {
                 GP_DEBUG ("replace_filename_extension: "
-                          "New name for filename '%s' doesn't fit in %s line %i.",
+                          "New name for filename '%s' doesnt fit in %s line %i.",
                           filename, __FILE__, __LINE__);
                 return NULL;
         }
@@ -457,7 +459,7 @@ filename_to_audio(const char *filename, const char __unused__ *newext)
                 return buf;
         } else {
                 GP_DEBUG ("filename_to_audio: "
-                          "New name for filename '%s' doesn't fit in %s line %i.",
+                          "New name for filename '%s' doesnt fit in %s line %i.",
                           filename, __FILE__, __LINE__);
                 return NULL;
         }
@@ -1502,10 +1504,8 @@ canon_int_capture_image (Camera *camera, CameraFilePath *path,
 
                 if (!camera->pl->remote_control) {
                         status = canon_int_start_remote_control (camera, context);
-                        if ( status < 0 ) {
-				free ( initial_state );
+                        if ( status < 0 )
                                 return status;
-			}
                 }
 
                 /*
@@ -1524,7 +1524,6 @@ canon_int_capture_image (Camera *camera, CameraFilePath *path,
                                                        0x04, transfermode);
                 if ( status < 0 ) {
                         canon_int_end_remote_control (camera, context);
-			free ( initial_state );
                         return status;
                 }
 
@@ -1538,7 +1537,6 @@ canon_int_capture_image (Camera *camera, CameraFilePath *path,
                                                        0x00, 0);
                 if ( status < 0 ) {
                         canon_int_end_remote_control (camera, context);
-			free ( initial_state );
                         return status;
                 }
 
@@ -1555,10 +1553,8 @@ canon_int_capture_image (Camera *camera, CameraFilePath *path,
                                                                       desc );
                         result_block = canon_usb_dialogue ( camera, CANON_USB_FUNCTION_CONTROL_CAMERA,
                                                             &result_len, payload, payload_len );
-                        if ( result_block == NULL ) {
-				free ( initial_state );
+                        if ( result_block == NULL )
                                 return GP_ERROR;
-			}
 
                         memset ( payload, 0, sizeof(payload) );
                         params = payload+0x08;
@@ -1574,10 +1570,8 @@ canon_int_capture_image (Camera *camera, CameraFilePath *path,
                         params[7] = 0;             /* Beep off */
                         result_block = canon_usb_dialogue ( camera, CANON_USB_FUNCTION_CONTROL_CAMERA,
                                                             &result_len, payload, 0x38 );
-                        if ( result_block == NULL ) {
-				free ( initial_state );
+                        if ( result_block == NULL )
                                 return GP_ERROR;
-			}
                 }
 #endif /* DEBUG_TINY_IMAGES */
 
@@ -1586,7 +1580,6 @@ canon_int_capture_image (Camera *camera, CameraFilePath *path,
                                                        0x04, transfermode);
                 if ( status < 0 ) {
                         canon_int_end_remote_control (camera, context);
-			free ( initial_state );
                         return status;
                 }
 
@@ -1596,7 +1589,6 @@ canon_int_capture_image (Camera *camera, CameraFilePath *path,
                         if ( status < 0 ) {
                                 gp_context_error (context, _("lock keys failed."));
                                 canon_int_end_remote_control (camera, context);
-				free ( initial_state );
                                 return status;
                         }
                 }
@@ -1610,7 +1602,6 @@ canon_int_capture_image (Camera *camera, CameraFilePath *path,
                         /* Try to leave camera in a usable state. */
                         canon_int_end_remote_control (camera, context);
 
-			free ( initial_state );
                         /* XXX It would be nice if we had a way to 
                            decode the camera error state for the caller
                            application.  For example, 
@@ -1632,19 +1623,13 @@ canon_int_capture_image (Camera *camera, CameraFilePath *path,
                                            _("canon_int_capture_image:"
                                              " final canon_usb_list_all_dirs() failed with status %i"),
                                            status );
-			free ( initial_state );
                         return status;
                 }
 
                 /* Find new file name in camera directory */
                 canon_int_find_new_image ( camera, initial_state, final_state, path );
-
-		/* Save this state to the camera directory state */
-		if (camera->pl->directory_state)
-			free (camera->pl->directory_state);
-		camera->pl->directory_state = final_state;
-
                 free ( initial_state );
+                free ( final_state );
                 break;
         case GP_PORT_SERIAL:
                 return GP_ERROR_NOT_SUPPORTED;
@@ -1705,9 +1690,10 @@ canon_int_set_file_attributes (Camera *camera, const char *file, const char *dir
                 return GP_ERROR_CORRUPTED_DATA;
         }
 
-        GP_LOG_DATA ((char *)msg, 4,
-                     "canon_int_set_file_attributes: returned four bytes as expected, "
-                     "we should check if they indicate error or not. Returned data:");
+        gp_log (GP_LOG_DATA, "canon/canon.c",
+                "canon_int_set_file_attributes: returned four bytes as expected, "
+                "we should check if they indicate error or not. Returned data :");
+        gp_log_data ("canon", (char *)msg, 4);
 
         return GP_OK;
 }
@@ -1732,8 +1718,7 @@ canon_int_get_release_params (Camera *camera, GPContext *context)
 {
         unsigned char *response = NULL;
         unsigned int len = 0x8c;
-        unsigned int i;
-        int status;
+        int i, status;
 
         GP_DEBUG ("canon_int_get_release_params()");
 
@@ -2050,8 +2035,7 @@ canon_int_set_zoom (Camera *camera, unsigned char zoom_level,
  * @zoom_max: pointer to hold zoom upper bound
  * @context: context for error reporting
  *
- * Gets the camera's zoom.
- * Tested only for G1 and S45 via USB.
+ * Gets the camera's zoom. Only tested for G1 via USB.
  *
  * Returns: gphoto2 error code
  *
@@ -2089,7 +2073,7 @@ canon_int_get_zoom (Camera *camera,
                 msg = canon_usb_dialogue ( camera,
                                            CANON_USB_FUNCTION_CONTROL_CAMERA,
                                            &datalen, payload, payloadlen );
-        if ( msg == NULL  || datalen < 15) {
+        if ( msg == NULL  && datalen != 0x1c) {
                 /* ERROR */
                 GP_DEBUG ("%s datalen=%x",
                           desc, datalen);
@@ -2563,6 +2547,7 @@ int
 canon_int_set_owner_name (Camera *camera, const char *name, GPContext *context)
 {
         unsigned char *msg;
+        unsigned char payload[4];
         unsigned int len;
 
         GP_DEBUG ("canon_int_set_owner_name() called, name = '%s'", name);
@@ -2579,6 +2564,7 @@ canon_int_set_owner_name (Camera *camera, const char *name, GPContext *context)
                         if ( camera->pl->md->model == CANON_CLASS_6 ) {
                                 msg = canon_usb_dialogue (camera, CANON_USB_FUNCTION_CAMERA_CHOWN_2,
                                                           &len, (unsigned char *)name, strlen (name) + 1);
+                                htole32a ( payload, 0x0f );
                         }
                         else
                                 msg = canon_usb_dialogue (camera, CANON_USB_FUNCTION_CAMERA_CHOWN,
@@ -2663,11 +2649,11 @@ canon_int_get_time (Camera *camera, time_t *camera_time, GPContext *context)
                 return GP_ERROR_CORRUPTED_DATA;
         }
 
-        if (camera_time != NULL) {
+        if (camera_time != NULL)
                 *camera_time = (time_t) le32atoh (msg + 4);
-		/* XXX should strip \n at the end of asctime() return data */
-		GP_DEBUG ("Camera time: %s", asctime (gmtime (camera_time)));
-	}
+
+        /* XXX should strip \n at the end of asctime() return data */
+        GP_DEBUG ("Camera time: %s", asctime (gmtime (camera_time)));
 
         return GP_OK;
 }
@@ -2834,8 +2820,9 @@ canon_int_get_disk_name (Camera *camera, GPContext *context)
                          */
                         msg = (unsigned char *)strdup ((char *)msg + 4);        /* @@@ should check length */
                         if ( msg == NULL ) {
-                                GP_DEBUG ("canon_int_get_disk_name: could not allocate "
-                                          "memory to hold response");
+                                GP_DEBUG ("canon_int_get_disk_name: could not allocate %li "
+                                          "bytes of memory to hold response",
+                                          (long)(strlen ((char *) msg + 4)));
                                 return NULL;
                         }
                         break;
@@ -3311,9 +3298,11 @@ canon_int_list_directory (Camera *camera, const char *folder, CameraList *list,
                 }
 
                 /* 10 bytes of attributes, size and date, a name and a NULL terminating byte */
-                GP_LOG_DATA ((char *)pos, dirent_ent_size,
-                             "canon_int_list_directory: dirent determined to be %li=0x%lx bytes :",
-                             (long)dirent_ent_size, (long)dirent_ent_size);
+                /* don't use GP_DEBUG since we log this with GP_LOG_DATA */
+                gp_log (GP_LOG_DATA, "canon/canon.c",
+                        "canon_int_list_directory: dirent determined to be %li=0x%lx bytes :",
+                        (long)dirent_ent_size, (long)dirent_ent_size);
+                gp_log_data ("canon", (char *)pos, dirent_ent_size);
                 if (dirent_name_len) {
                         /* OK, this directory entry has a name in it. */
 
@@ -3341,10 +3330,11 @@ canon_int_list_directory (Camera *camera, const char *folder, CameraList *list,
                                                  sizeof (info.file.type));
                                         info.file.fields |= GP_FILE_INFO_TYPE;
 
-                                        if (dirent_attrs & CANON_ATTR_NOT_DOWNLOADED)
-                                                info.file.status = GP_FILE_STATUS_NOT_DOWNLOADED;
-                                        else
+                                        if ((dirent_attrs & CANON_ATTR_DOWNLOADED) == 0)
                                                 info.file.status = GP_FILE_STATUS_DOWNLOADED;
+                                        else
+                                                info.file.status =
+                                                        GP_FILE_STATUS_NOT_DOWNLOADED;
                                         info.file.fields |= GP_FILE_INFO_STATUS;
 
                                         /* the size is located at offset 2 and is 4
@@ -3875,9 +3865,11 @@ canon_int_get_info_func (Camera *camera, const char *folder,
                 }
 
                 /* 10 bytes of attributes, size and date, a name and a NULL terminating byte */
-                GP_LOG_DATA ((char *)pos, dirent_ent_size,
-                             "canon_int_get_info_func: dirent determined to be %li=0x%lx bytes:",
-                             (long)dirent_ent_size, (long)dirent_ent_size);
+                /* don't use GP_DEBUG since we log this with GP_LOG_DATA */
+                gp_log (GP_LOG_DATA, "canon/canon.c",
+                        "canon_int_get_info_func: dirent determined to be %li=0x%lx bytes :",
+                        (long)dirent_ent_size, (long)dirent_ent_size);
+                gp_log_data ("canon", (char *)pos, dirent_ent_size);
                 if (dirent_name_len) {
                         /* OK, this directory entry has a name in it. */
 
@@ -3902,10 +3894,11 @@ canon_int_get_info_func (Camera *camera, const char *folder,
                                                  sizeof (info->file.type));
                                         info->file.fields |= GP_FILE_INFO_TYPE;
 
-                                        if (dirent_attrs & CANON_ATTR_NOT_DOWNLOADED)
-                                                info->file.status = GP_FILE_STATUS_NOT_DOWNLOADED;
-                                        else
+                                        if ((dirent_attrs & CANON_ATTR_DOWNLOADED) == 0)
                                                 info->file.status = GP_FILE_STATUS_DOWNLOADED;
+                                        else
+                                                info->file.status =
+                                                        GP_FILE_STATUS_NOT_DOWNLOADED;
                                         info->file.fields |= GP_FILE_INFO_STATUS;
 
                                         /* the size is located at offset 2 and is 4
@@ -4068,8 +4061,7 @@ canon_int_extract_jpeg_thumb (unsigned char *data, const unsigned int datalen,
                  * software assume that the EXIF is included in the
                  * JPEG thumbnail and just fetch the thumbnail to get
                  * the EXIF data. */
-                unsigned int n_tags;
-                int ifd0_offset, ifd1_offset;
+                int ifd0_offset, ifd1_offset, n_tags;
                 int jpeg_offset = -1, jpeg_size = -1;
 
                 GP_DEBUG ( "canon_int_extract_jpeg_thumb: this is from a CR2 file.");

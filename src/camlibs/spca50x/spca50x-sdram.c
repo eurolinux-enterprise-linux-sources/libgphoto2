@@ -2,7 +2,7 @@
 /* spca50x_sdram.c - Gphoto2 library for cameras with sunplus   */
 /*             spca50x chips                                    */
 /*                                                              */
-/* Copyright 2002, 2003 Till Adam                               */
+/* Copyright © 2002, 2003 Till Adam                             */
 /*                                                              */
 /* Author: Till Adam <till@adam-lilienthal.de>                  */
 /*                                                              */
@@ -20,8 +20,8 @@
 /*                                                              */
 /* You should have received a copy of the GNU Library General   */
 /* Public License along with this library; if not, write to the */
-/* Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,*/
-/* Boston, MA  02110-1301  USA					*/
+/* Free Software Foundation, Inc., 59 Temple Place - Suite 330, */
+/* Boston, MA 02111-1307, USA.                                  */
 /****************************************************************/
 #define _BSD_SOURCE
 
@@ -119,7 +119,7 @@ spca50x_sdram_get_file_count_and_fat_count (CameraPrivateLibrary * lib,
 		sleep (1);
 		CHECK (gp_port_usb_msg_read
 				(lib->gpdev, 0, 0, 0xe15,
-				 (char *) & lib->num_files_on_sdram, 1));
+				 (uint8_t *) & lib->num_files_on_sdram, 1));
 		LE32TOH (lib->num_files_on_sdram);
 
 		/*  get fatscount */
@@ -128,12 +128,12 @@ spca50x_sdram_get_file_count_and_fat_count (CameraPrivateLibrary * lib,
 		sleep (1);
 		CHECK (gp_port_usb_msg_read
 				(lib->gpdev, 0, 0, 0x0e19,
-				 (char *)&lower, 1));
+				 (uint8_t *) & lower, 1));
 		CHECK (gp_port_usb_msg_read
 				(lib->gpdev, 0, 0, 0x0e20,
-				 (char *)&upper, 1));
+				 (uint8_t *) & upper, 1));
 
-		lib->num_fats = (((upper & 0xFF) << 8) | (lower & 0xFF));
+		lib->num_fats = ((upper & 0xFF << 8) | (lower & 0xFF));
 	} else {
 		while (1) {
 			CHECK (spca50x_sdram_get_fat_page (lib, lib->num_fats,
@@ -273,7 +273,7 @@ spca50x_get_image (CameraPrivateLibrary * lib, uint8_t ** buf,
 			return ret;
 		}
 		sleep (1);
-		ret = gp_port_read (lib->gpdev, (char *)mybuf, size);
+		ret = gp_port_read (lib->gpdev, mybuf, size);
 		if (ret < GP_OK) {
 			free (mybuf);
 			return ret;
@@ -522,7 +522,7 @@ spca50x_get_avi_thumbnail (CameraPrivateLibrary * lib, uint8_t ** buf,
 	uint32_t start;
 	uint8_t *mybuf;
 	int size, o_size, file_size;
-	int ret;
+	int w, h, ret;
 
 	/* FIXME */
 	if (lib->bridge == BRIDGE_SPCA500)
@@ -539,6 +539,8 @@ spca50x_get_avi_thumbnail (CameraPrivateLibrary * lib, uint8_t ** buf,
 		(p[52] & 0xff) * 0x10000 + (p[51] & 0xff) * 0x100 +
 		(p[50] & 0xff);
 	qIndex = p[7] & 0x0f;
+	w = (int) ((p[8] & 0xFF) * 16);
+	h = (int) ((p[9] & 0xFF) * 16);
 
 	/* align */
 	if (size % 64 != 0)
@@ -628,7 +630,7 @@ spca50x_get_image_thumbnail (CameraPrivateLibrary * lib, uint8_t ** buf,
 			return ret;
 		}
 		sleep (1);
-		ret = gp_port_read (lib->gpdev, (char *)mybuf, size);
+		ret = gp_port_read (lib->gpdev, mybuf, size);
 		if (ret < GP_OK) {
 			free (mybuf);
 			return ret;
@@ -642,7 +644,7 @@ spca50x_get_image_thumbnail (CameraPrivateLibrary * lib, uint8_t ** buf,
 	}
 
 	tmp = *buf;
-	snprintf ((char*)tmp, *len, "P6 %d %d 255\n", t_width, t_height);
+	snprintf (tmp, *len, "P6 %d %d 255\n", t_width, t_height);
 	tmp += headerlength;
 
 	yuv_p = mybuf;
@@ -697,7 +699,7 @@ spca50x_sdram_get_info (CameraPrivateLibrary * lib)
 
 		CHECK (gp_port_usb_msg_read
 		       (lib->gpdev, 0, 0, SPCA50X_REG_DramType,
-			(char *) & dramtype, 1));
+			(uint8_t *) & dramtype, 1));
 		dramtype &= 0xFF;
 	}
 
@@ -751,7 +753,7 @@ spca50x_is_idle (CameraPrivateLibrary * lib)
 	int mode;
 
 	CHECK (gp_port_usb_msg_read
-	       (lib->gpdev, 0, 0, SPCA50X_REG_CamMode, (char *) & mode, 1));
+	       (lib->gpdev, 0, 0, SPCA50X_REG_CamMode, (uint8_t *) & mode, 1));
 
 	return mode == SPCA50X_CamMode_Idle ? 1 : 0;
 }
@@ -790,13 +792,13 @@ spca50x_download_data (CameraPrivateLibrary * lib, uint32_t start,
 
 	CHECK (gp_port_usb_msg_read
 	       (lib->gpdev, 0, 0, SPCA50X_REG_VlcAddressL,
-		(char *) & vlcAddressL, 1));
+		(uint8_t *) & vlcAddressL, 1));
 	CHECK (gp_port_usb_msg_read
 	       (lib->gpdev, 0, 0, SPCA50X_REG_VlcAddressM,
-		(char *) & vlcAddressM, 1));
+		(uint8_t *) & vlcAddressM, 1));
 	CHECK (gp_port_usb_msg_read
 	       (lib->gpdev, 0, 0, SPCA50X_REG_VlcAddressH,
-		(char *) & vlcAddressH, 1));
+		(uint8_t *) & vlcAddressH, 1));
 
 	foo = start & 0xFF;
 	CHECK (gp_port_usb_msg_write
@@ -816,7 +818,7 @@ spca50x_download_data (CameraPrivateLibrary * lib, uint32_t start,
 	       (lib->gpdev, 0, SPCA50X_TrigDramFifo, SPCA50X_REG_Trigger, NULL,
 		0));
 
-	CHECK (gp_port_read (lib->gpdev, (char *)buf, size));
+	CHECK (gp_port_read (lib->gpdev, buf, size));
 
 	CHECK (gp_port_usb_msg_write
 	       (lib->gpdev, 0, vlcAddressL, SPCA50X_REG_VlcAddressL, NULL, 0));
@@ -872,7 +874,7 @@ spca50x_get_FATs (CameraPrivateLibrary * lib, int dramtype)
 		       (lib->gpdev, 0x05, 0x00, 0x07, NULL, 0));
 		sleep (1);
 		CHECK (gp_port_read
-		       (lib->gpdev, (char *)lib->fats,
+		       (lib->gpdev, lib->fats,
 			lib->num_fats * SPCA50X_FAT_PAGE_SIZE));
 	}
 
@@ -891,13 +893,13 @@ spca50x_get_FATs (CameraPrivateLibrary * lib, int dramtype)
 		} else {
 			/* its an image */
 			if (type == 0x00 || type == 0x01) {
-				snprintf ((char*)buf, 13, "Image%03d.jpg",
+				snprintf (buf, 13, "Image%03d.jpg",
 					  ++lib->num_images);
 				lib->files[file_index].mime_type =
 					SPCA50X_FILE_TYPE_IMAGE;
 			} else if ((type == 0x08) || (type == 0x03)) {
 				/* its the start of an avi */
-				snprintf ((char*)buf, 13, "Movie%03d.avi",
+				snprintf (buf, 13, "Movie%03d.avi",
 					  ++lib->num_movies);
 				lib->files[file_index].mime_type =
 					SPCA50X_FILE_TYPE_AVI;
@@ -905,7 +907,7 @@ spca50x_get_FATs (CameraPrivateLibrary * lib, int dramtype)
 			lib->files[file_index].fat = p;
 			lib->files[file_index].fat_start = index;
 			lib->files[file_index].fat_end = index;
-			lib->files[file_index].name = strdup ((char*)buf);
+			lib->files[file_index].name = strdup (buf);
 			if (lib->bridge == BRIDGE_SPCA504) {
 				lib->files[file_index].width =
 					(p[8] & 0xFF) * 16;

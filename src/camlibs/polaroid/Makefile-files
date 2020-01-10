@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += polaroid/jpeg.txt polaroid/jpeghead.h \
 	polaroid/pdc320.html polaroid/gt98x.html polaroid/ChangeLog
 

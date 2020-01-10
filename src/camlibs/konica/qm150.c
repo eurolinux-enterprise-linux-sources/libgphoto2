@@ -1,7 +1,7 @@
 /* qm150.c
  *
- * Copyright 2003 Marcus Meissner <marcus@jet.franken.de>
- *                Aurelien Croc (AP2C) <programming@ap2c.com>
+ * Copyright © 2003 Marcus Meissner <marcus@jet.franken.de>
+ *                  Aurélien Croc (AP²C) <programming@ap2c.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,8 +15,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  *
  * Modified by Aurélien Croc (AP²C) <programming@ap2c.com>
  * In particular : fix some bugs, and implementation of advanced 
@@ -33,22 +33,16 @@
  * information header and use this number with all functions !!
  */
 
-#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
 
 #include "config.h"
 
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <gphoto2/gphoto2-library.h>
 #include <gphoto2/gphoto2-result.h>
 #include <gphoto2/gphoto2-port-log.h>
-
-#ifdef HAVE_LIBEXIF
-#  include <libexif/exif-data.h>
-#  include <libexif/exif-utils.h>
-#endif
-
+#include <exif.h>
 
 #ifdef ENABLE_NLS
 #  include <libintl.h>
@@ -172,7 +166,7 @@ k_ping (GPPort *port) {
  */
 static int
 k_info_img (unsigned int image_no, void *data, CameraFileInfo* info, 
-		int *data_number)
+		unsigned int *data_number)
 {
 	unsigned char	cmd[6], buf[INFO_BUFFER];
 	Camera *camera = data;
@@ -340,13 +334,12 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 	       CameraFileType type, CameraFile *file, void *data,
 	       GPContext *context)
 {
-	unsigned char *d;
-	int image_number, image_no, len, ret;
+	unsigned char *d,*thumbnail;
+	unsigned int image_number;
+	int image_no, len, ret;
+	long long_len;
 	CameraFileInfo file_info;
-#ifdef HAVE_LIBEXIF
-	ExifData *ed;
-#endif
-
+	exifparser exifdat;
 	GP_DEBUG ("*** ENTER: get_file_func ***");
 
         image_no = gp_filesystem_number(fs, folder, filename, context);
@@ -374,6 +367,7 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 			break;
 		case GP_FILE_TYPE_PREVIEW:
 			len = file_info.preview.size;
+			long_len = (long)len;
 			if (!(d = (unsigned char *)malloc(len)))
 				return (GP_ERROR_NO_MEMORY);
 			ret = k_getdata(image_no, GP_FILE_TYPE_PREVIEW, len, 
@@ -382,23 +376,13 @@ get_file_func (CameraFilesystem *fs, const char *folder, const char *filename,
 				free(d);
 				return ret;
 			}
-#ifdef HAVE_LIBEXIF
-			ed = exif_data_new_from_data ((unsigned char*)d, len);
-			if (ed->data) {
-				gp_file_set_mime_type (file, GP_MIME_JPEG);
-				ret = gp_file_append(file, (char*)ed->data, ed->size);
-				exif_data_unref (ed);
-				free (d);
-				return GP_OK;
-			}
-			exif_data_unref (ed);
+			exifdat.header = d;
+			exifdat.data = d+12;
+			thumbnail = gpi_exif_get_thumbnail_and_size(&exifdat,
+				&long_len);
 			free(d);
-			return GP_ERROR_NOT_SUPPORTED;
-#else
-			gp_context_error(context, _("Compiled without EXIF support, no thumbnails available."));
-			free(d);
-			return GP_ERROR_NOT_SUPPORTED;
-#endif
+			d = thumbnail;
+			break;
 		case GP_FILE_TYPE_EXIF:
 			len = file_info.preview.size;
 			if (!(d = (unsigned char *)malloc(len)))
@@ -432,7 +416,7 @@ delete_file_func (CameraFilesystem *fs, const char *folder,
 	Camera *camera = data;
 	CameraFileInfo file_info;
 	unsigned char cmd[7], ack;
-	int image_no;
+	unsigned int image_no;
 	int ret;
 
 	GP_DEBUG ("*** ENTER: delete_file_func ***");
@@ -559,7 +543,7 @@ put_file_func (CameraFilesystem *fs, const char *folder, const char *name,
 				return ret;
 			}
 			/* and complete with zeros */
-			memset(buf,0,DATA_BUFFER);
+			bzero(buf,DATA_BUFFER);
 			ret = gp_port_write (camera->port, (char*)buf, (DATA_BUFFER - 
 				(len - len_sent)));
 			if (ret<GP_OK) {

@@ -1,9 +1,9 @@
 /****************************************************************/
 /* gsmart300.h - Gphoto2 library for the Mustek gSmart 300      */
 /*                                                              */
-/* Copyright (C) 2002 JÃ©rÃ´me Lodewyck                           */
+/* Copyright (C) 2002 Jérôme Lodewyck                           */
 /*                                                              */
-/* Author: JÃ©rÃ´me Lodewyck <jerome.lodewyck@ens.fr>             */
+/* Author: Jérôme Lodewyck <jerome.lodewyck@ens.fr>             */
 /*                                                              */
 /* based on code by: Till Adam <till@adam-lilienthal.de>        */
 /*                                                              */
@@ -21,8 +21,8 @@
 /*                                                              */
 /* You should have received a copy of the GNU Library General   */
 /* Public License along with this library; if not, write to the */
-/* Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,*/
-/* Boston, MA  02110-1301  USA					*/
+/* Free Software Foundation, Inc., 59 Temple Place - Suite 330, */
+/* Boston, MA 02111-1307, USA.                                  */
 /****************************************************************/
 
 #ifndef __GSMART300_H__

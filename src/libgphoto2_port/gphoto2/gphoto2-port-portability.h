@@ -1,22 +1,4 @@
-/** \file gphoto2-port-log.h
- *
- * Copyright 2001 Lutz Mueller <lutz@users.sf.net>
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details. 
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
- */
+/** \file */
 #ifndef __GPHOTO2_PORT_PORTABILITY_H__
 #define __GPHOTO2_PORT_PORTABILITY_H__
 
@@ -29,8 +11,6 @@
  ************************************************************************/
 
 # include <windows.h>
-/* done by mingw/wine headers ... defined to struct ... tsaes*/
-#undef interface
 # include <sys/types.h>
 # include <sys/stat.h>
 # include <string.h>
@@ -42,13 +22,7 @@
 # endif
 # define IOLIBS			"."
 # define strcasecmp		_stricmp
-# ifndef snprintf
-#  define snprintf		_snprintf
-# endif
-
-#define __func__ __FUNCTION__
-
-typedef SSIZE_T ssize_t;
+# define snprintf		_snprintf
 
 /* Work-around for readdir() */
 typedef struct {
@@ -61,15 +35,13 @@ typedef struct {
 	int  drive_index;
 } GPPORTWINDIR;
 
+/* Sleep functionality */
+# define GP_SYSTEM_SLEEP(_ms)	  do { Sleep(_ms) } while (0)
 
 /* Directory-oriented functions */
 # define gp_system_dir		  GPPORTWINDIR *
 # define gp_system_dirent	  WIN32_FIND_DATA *
 # define gp_system_dir_delim	  '\\'
-
-# define sleep(x) usleep((x) * 1000 * 1000)
-
-
 
 /************************************************************************
  * End WIN32 definitions
@@ -205,6 +177,14 @@ typedef struct {
 # include <sys/stat.h>
 # include <unistd.h>
 
+/** Sleep passed amount of milliseconds. */
+# define GP_SYSTEM_SLEEP(_ms)			      \
+  do {						      \
+    struct timespec req;			      \
+    req.tv_sec = 0;				      \
+    req.tv_nsec = 1000*1000*((long)(_ms));	      \
+    nanosleep(&req, NULL);			      \
+  } while (0)
 
 /* Directory-oriented functions */
 /** A system directory handle */

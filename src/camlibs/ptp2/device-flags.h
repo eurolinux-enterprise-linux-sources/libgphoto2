@@ -19,8 +19,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  *
  * This file is supposed to be included by both libmtp and libgphoto2.
  */
@@ -232,12 +232,6 @@
 #define DEVICE_FLAG_NIKON_BROKEN_CAPTURE	0x00100000
 
 /**
- * To distinguish the V1 series from the DSLRs and handle them
- * (libgphoto2)
- */
-#define DEVICE_FLAG_NIKON_1			0x00200000
-
-/**
  * Broken capture support where cameras do not send CaptureComplete events.
  * (libgphoto2)
  */
@@ -291,12 +285,6 @@
  * 32 bit.
  */
 #define DEVICE_FLAG_PROPLIST_OVERRIDES_OI	0x40000000
-
-/**
- * On 2016 EOS cameras, do not close the session on exiting,
- * as the device will only report ptp errors afterwards.
- */
-#define DEVICE_FLAG_DONT_CLOSE_SESSION		0x80000000
 
 /**
  * All these bug flags need to be set on SONY NWZ Walkman

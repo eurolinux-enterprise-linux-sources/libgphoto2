@@ -13,9 +13,8 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 #define _BSD_SOURCE
 
@@ -24,6 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #ifdef HAVE_FCNTL_H
 # include <fcntl.h>
@@ -86,7 +86,8 @@ gp_port_usbdiskdirect_lock (GPPort *port, const char *path)
 #ifdef HAVE_LOCKDEV
 	int pid;
 
-	GP_LOG_D ("Trying to lock '%s'...", path);
+	gp_log (GP_LOG_DEBUG, "gphoto2-port-usbdiskdirect",
+		"Trying to lock '%s'...", path);
 
 	pid = dev_lock (path);
 	if (pid) {
@@ -203,17 +204,16 @@ gp_port_usbdiskdirect_get_usb_id (const char *disk,
 int
 gp_port_library_list (GPPortInfoList *list)
 {
-	gp_system_dir dir;
-	gp_system_dirent dirent;
+	DIR *dir;
+	struct dirent *dirent;
 	GPPortInfo info;
-	int ret;
 	unsigned short vendor_id, product_id;
 
-	dir = gp_system_opendir ("/sys/block");
+	dir = opendir ("/sys/block");
 	if (dir == NULL)
 		return GP_OK;
 
-	while ((dirent = gp_system_readdir (dir))) {
+	while ((dirent = readdir (dir))) {
 		char path[4096];
 		if (dirent->d_name[0] != 's' ||
 		    dirent->d_name[1] != 'd' ||
@@ -232,18 +232,18 @@ gp_port_library_list (GPPortInfoList *list)
 			  dirent->d_name);
 		gp_port_info_set_path (info, path);
 		gp_port_info_set_name (info, _("USB Mass Storage direct IO"));
-		ret = gp_port_info_list_append (list, info);
-		if (ret < GP_OK)
-			break;
+		CHECK (gp_port_info_list_append (list, info))
 	}
-	gp_system_closedir (dir);
+	closedir (dir);
 	return GP_OK;
 }
 
 static int
 gp_port_usbdiskdirect_init (GPPort *port)
 {
-	C_MEM (port->pl = calloc (1, sizeof (GPPortPrivateLibrary)));
+	port->pl = calloc (1, sizeof (GPPortPrivateLibrary));
+	if (!port->pl)
+		return GP_ERROR_NO_MEMORY;
 
 	port->pl->fd = -1;
 
@@ -253,10 +253,13 @@ gp_port_usbdiskdirect_init (GPPort *port)
 static int
 gp_port_usbdiskdirect_exit (GPPort *port)
 {
-	C_PARAMS (port);
+	if (!port)
+		return GP_ERROR_BAD_PARAMETERS;
 
-	free (port->pl);
-	port->pl = NULL;
+	if (port->pl) {
+		free (port->pl);
+		port->pl = NULL;
+	}
 
 	return GP_OK;
 }
@@ -274,7 +277,8 @@ gp_port_usbdiskdirect_open (GPPort *port)
 			result = gp_port_usbdiskdirect_lock (port, path);
 			if (result == GP_OK)
 				break;
-			GP_LOG_D ("Failed to get a lock, trying again...");
+			gp_log (GP_LOG_DEBUG, "gphoto2-port-usbdiskdirect",
+				"Failed to get a lock, trying again...");
 			sleep (1);
 		}
 		CHECK (result)
@@ -312,7 +316,8 @@ static int gp_port_usbdiskdirect_seek (GPPort *port, int offset, int whence)
 {
 	off_t ret;
 
-	C_PARAMS (!port);
+	if (!port)
+		return GP_ERROR_BAD_PARAMETERS;
 
 	/* The device needs to be opened for that operation */
 	if (port->pl->fd == -1)
@@ -334,7 +339,8 @@ gp_port_usbdiskdirect_write (GPPort *port, const char *bytes, int size)
 {
 	int ret;
 
-	C_PARAMS (port);
+	if (!port)
+		return GP_ERROR_BAD_PARAMETERS;
 
 	/* The device needs to be opened for that operation */
 	if (port->pl->fd == -1)
@@ -355,7 +361,8 @@ gp_port_usbdiskdirect_read (GPPort *port, char *bytes, int size)
 {
 	int ret;
 
-	C_PARAMS (port);
+	if (!port)
+		return GP_ERROR_BAD_PARAMETERS;
 
 	/* The device needs to be opened for that operation */
 	if (port->pl->fd == -1)
@@ -374,7 +381,8 @@ gp_port_usbdiskdirect_read (GPPort *port, char *bytes, int size)
 static int
 gp_port_usbdiskdirect_update (GPPort *port)
 {
-	C_PARAMS (port);
+	if (!port)
+		return GP_ERROR_BAD_PARAMETERS;
 
 	memcpy (&port->settings, &port->settings_pending,
 		sizeof (port->settings));
@@ -388,10 +396,12 @@ gp_port_usbdiskdirect_find_device(GPPort *port, int idvendor, int idproduct)
 	unsigned short vendor_id, product_id;
 	const char *disk;
 
-	C_PARAMS (port);
+	if (!port)
+		return GP_ERROR_BAD_PARAMETERS;
 
 	disk = strrchr (port->settings.usbdiskdirect.path, '/');
-	C_PARAMS (disk);
+	if (!disk)
+		return GP_ERROR_BAD_PARAMETERS;
 	disk++;
 
 	CHECK (gp_port_usbdiskdirect_get_usb_id (disk,
@@ -407,9 +417,10 @@ gp_port_library_operations ()
 {
 	GPPortOperations *ops;
 
-	ops = calloc (1, sizeof (GPPortOperations));
+	ops = malloc (sizeof (GPPortOperations));
 	if (!ops)
 		return (NULL);
+	memset (ops, 0, sizeof (GPPortOperations)); 
 
 	ops->init   = gp_port_usbdiskdirect_init;
 	ops->exit   = gp_port_usbdiskdirect_exit;

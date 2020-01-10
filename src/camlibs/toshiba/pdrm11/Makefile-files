@@ -1,5 +1,3 @@
-# -*- Makefile -*-
-
 EXTRA_DIST += toshiba/pdrm11/README.toshiba-pdrm11
 camlibdoc_DATA += toshiba/pdrm11/README.toshiba-pdrm11
 

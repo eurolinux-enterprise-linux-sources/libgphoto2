@@ -22,8 +22,8 @@
 /*                                                              */
 /* You should have received a copy of the GNU Library General   */
 /* Public License along with this library; if not, write to the */
-/* Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,*/
-/* Boston, MA  02110-1301  USA					*/
+/* Free Software Foundation, Inc., 59 Temple Place - Suite 330, */
+/* Boston, MA 02111-1307, USA.                                  */
 /****************************************************************/
 
 #include "config.h"
@@ -54,6 +54,7 @@
 #  define _(String) (String)
 #  define N_(String) (String)
 #endif
+
 
 
 #define QUALITY_LO   0x56
@@ -107,7 +108,7 @@ static int file_list_func (CameraFilesystem *fs, const char *folder,
   
   Camera *camera = data;
   CameraFileInfo info;
-  int n,i,nr_of_blocks;
+  int ret,n,i,nr_of_blocks;
   int offset = 64;
   char *temp;
   char buffer[512];
@@ -121,7 +122,7 @@ static int file_list_func (CameraFilesystem *fs, const char *folder,
   }
   for (n = 0; n != nr_of_blocks; n++)
     {
-      CHECK(pccam600_read_data(camera->port, (unsigned char *)buffer));
+      ret = pccam600_read_data(camera->port, buffer);
       for (i = offset; i <= 512-32; i=i+32)
 	{
 	  memcpy(file_entry,&(buffer)[i],32);
@@ -130,7 +131,7 @@ static int file_list_func (CameraFilesystem *fs, const char *folder,
 	      !((file_entry->state & 0x08) == 8) )
 	    {
 	      info.file.fields = 0;
-	      temp = (char *)&(file_entry->name)[5];
+	      temp = &(file_entry->name)[5];
 	      if (strncmp(temp,"JPG",3) == 0)
 		{
 		  memcpy(&(file_entry->name)[5],".jpg",4);
@@ -160,14 +161,14 @@ static int file_list_func (CameraFilesystem *fs, const char *folder,
 		  info.file.fields = GP_FILE_INFO_WIDTH | GP_FILE_INFO_HEIGHT | GP_FILE_INFO_TYPE;
 		  strcpy(info.file.type, GP_MIME_RAW);
 		}
-	      gp_filesystem_append(fs,folder,(char *)file_entry->name,context);
+	      gp_filesystem_append(fs,folder,file_entry->name,context);
 	      info.preview.fields = 0;
 	      info.file.size = (file_entry->size[1]*256+
 				file_entry->size[0]) * 256;
 	      info.file.permissions = GP_FILE_PERM_READ | GP_FILE_PERM_DELETE;
 	      info.file.fields |= GP_FILE_INFO_SIZE | GP_FILE_INFO_PERMISSIONS 
 		|GP_FILE_INFO_TYPE;
-	      CHECK(gp_filesystem_set_info_noop(fs, folder, (char *)file_entry->name, info, context));
+	      ret = gp_filesystem_set_info_noop(fs, folder, file_entry->name, info, context);
 	    }
 	}
 	offset = 0;
@@ -214,7 +215,7 @@ static int get_file_func (CameraFilesystem *fs, const char *folder,
 {
   Camera *camera =  user_data;
   unsigned char *data = NULL;
-  int size,index;
+  int size,ret,index;
   size = 0;
   index = gp_filesystem_number(fs, folder, filename, context);
   if (index < 0)
@@ -222,20 +223,21 @@ static int get_file_func (CameraFilesystem *fs, const char *folder,
   switch(type)
     {
     case GP_FILE_TYPE_NORMAL:
-      CHECK(camera_get_file(camera, context, index, &data, &size));
+      ret=camera_get_file(camera, context, index, &data, &size);
       break;
     default:
       return GP_ERROR_NOT_SUPPORTED;
     }
-  return gp_file_set_data_and_size(file, (char *)data, size);
+  return gp_file_set_data_and_size(file, data, size);
 }
 
 static int camera_summary(Camera *camera, CameraText *summary, GPContext *context)
 {
   int totalmem;
   int  freemem;
+  int ret;
   char summary_text[256];  
-  CHECK(pccam600_get_mem_info(camera->port,context,&totalmem,&freemem));
+  ret = pccam600_get_mem_info(camera->port,context,&totalmem,&freemem);
   snprintf(summary_text,sizeof(summary_text),
   	   (" Total memory is %8d bytes.\n Free memory is  %8d bytes."),
 	   totalmem,freemem );
@@ -252,12 +254,12 @@ static int camera_about(Camera *camera, CameraText *about, GPContext *context)
 
 static int delete_file_func(CameraFilesystem *fs, const char *folder,
 			    const char *filename, void *data, GPContext *context){
-  int index;
+  int index,ret;
 
   Camera *camera = data;
   index = gp_filesystem_number(fs, folder, filename, context);
   gp_log(GP_LOG_DEBUG,"pccam","deleting '%s' in '%s'.. index:%d",filename, folder,index);
-  CHECK(pccam600_delete_file(camera->port, context, index));
+  ret = pccam600_delete_file(camera->port, context, index);
   return GP_OK;
 }
 
@@ -269,6 +271,7 @@ static CameraFilesystemFuncs fsfuncs = {
 
 int camera_init(Camera *camera, GPContext *context){
   GPPortSettings settings;
+  int ret = 0;
   camera->functions->exit         = camera_exit;
   camera->functions->summary      = camera_summary;
   camera->functions->about        = camera_about;
@@ -276,19 +279,22 @@ int camera_init(Camera *camera, GPContext *context){
   switch (camera->port->type) 
     {
     case GP_PORT_USB:
-      CHECK(gp_port_get_settings(camera->port,&settings));
+      ret = gp_port_get_settings(camera->port,&settings);
+      if (ret < 0) return ret;
       settings.usb.inep = 0x82;
       settings.usb.outep = 0x03;
       settings.usb.config = 1;
       settings.usb.interface = 1;
       settings.usb.altsetting = 0;
-      CHECK(gp_port_set_settings(camera->port,settings));
+      ret=gp_port_set_settings(camera->port,settings);
+      if (ret<0) return ret;
       break;
     case GP_PORT_SERIAL:
       return GP_ERROR_IO_SUPPORTED_SERIAL;
     default: 
       return GP_ERROR_NOT_SUPPORTED;
     }    
-  CHECK(pccam600_init(camera->port, context));
+  ret = pccam600_init(camera->port, context);
+  if (ret < 0) return ret;
   return gp_filesystem_set_funcs (camera->fs, &fsfuncs, camera);
 }

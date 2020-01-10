@@ -1,6 +1,6 @@
 ########################################################################
 #
-# $Id$
+# $Id: package.spec.in 12090 2009-05-16 22:28:39Z marcusmeissner $
 #
 # RPM spec file for libgphoto2
 #
@@ -14,14 +14,14 @@
 ####################################
 Summary: Software for accessing digital cameras
 Name: libgphoto2
-Version: 2.5.15
+Version: 2.5.2
 Release: 2
 License: LGPL
 Group: Applications/Multimedia
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 # sources only available from sf.net - but not wgettable.
-# Source: http://www.gphoto.org/dist/libgphoto2-2.5.15.tar.gz
-Source: http://prdownloads.sourceforge.net/gphoto/libgphoto2-2.5.15.tar.gz
+# Source: http://www.gphoto.org/dist/libgphoto2-2.5.2.tar.gz
+Source: http://prdownloads.sourceforge.net/gphoto/libgphoto2-2.5.2.tar.gz
 Url: http://www.gphoto.org/
 ExcludeArch: s390 s390x
 Provides: libgphoto2

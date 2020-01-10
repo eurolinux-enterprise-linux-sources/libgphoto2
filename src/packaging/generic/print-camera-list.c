@@ -1,8 +1,8 @@
 /* print-camera-list - print libgphoto2 camera list in different formats
  *
- * Copyright 2002,2005 Hans Ulrich Niedermann <hun@users.sourceforge.net>
- * Portions Copyright 2002 Lutz Mueller <lutz@users.sourceforge.net>
- * Portions Copyright 2005 Julien BLACHE <jblache@debian.org>
+ * Copyright © 2002,2005 Hans Ulrich Niedermann <hun@users.sourceforge.net>
+ * Portions Copyright © 2002 Lutz Müller <lutz@users.sourceforge.net>
+ * Portions Copyright © 2005 Julien BLACHE <jblache@debian.org>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,8 +16,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301  USA
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 
@@ -165,9 +165,9 @@ print_version_comment(FILE *out,
 	unsigned int n;
 	if (out == NULL) { FATAL("Internal error: NULL out in print_version_comment()"); }
 	if (firstline != NULL) { fputs(firstline, out); }
-	if (startline != NULL) { fputs(startline, out); }
+	fputs(startline, out);
 	fputs("Created from this library:", out);
-	if (endline != NULL) { fputs(endline, out); }
+	fputs(endline, out);
 	for (n=0; (module_versions[n].name != NULL) && (module_versions[n].version_func != NULL); n++) {
 		const char *name = module_versions[n].name;
 		GPVersionFunc func = module_versions[n].version_func;
@@ -220,6 +220,7 @@ hotplug_camera_func (const func_params_t *params,
 {
 	int flags = 0;
 	int class = 0, subclass = 0, proto = 0;
+	int usb_vendor = 0, usb_product = 0;
 	const char *usermap_script = 
 		((*params->argv)[0] != NULL)
 		?((*params->argv)[0])
@@ -232,6 +233,8 @@ hotplug_camera_func (const func_params_t *params,
 			proto = 0;
 			flags = (GP_USB_HOTPLUG_MATCH_VENDOR_ID 
 				 | GP_USB_HOTPLUG_MATCH_PRODUCT_ID);
+			usb_vendor = a->usb_vendor;
+			usb_product = a->usb_product;
 		} else if ((a->usb_class) && (a->usb_class != 666)) {
 			class = a->usb_class;
 			subclass = a->usb_subclass;
@@ -245,6 +248,8 @@ hotplug_camera_func (const func_params_t *params,
 				flags |= GP_USB_HOTPLUG_MATCH_INT_PROTOCOL;
 			else
 				proto = 0;
+			usb_vendor = 0;
+			usb_product = 0;
 		}
 	} else {
 		/* not a USB camera */
@@ -365,8 +370,7 @@ typedef enum {
 		UDEV_PRE_0_98 = 0,
 		UDEV_0_98 = 1,
 		UDEV_136 = 2,
-		UDEV_175 = 3,
-		UDEV_201 = 4
+		UDEV_175 = 3
 } udev_version_t;
 
 static const StringFlagItem udev_version_t_map[] = {
@@ -374,7 +378,6 @@ static const StringFlagItem udev_version_t_map[] = {
 	{ "0.98", UDEV_0_98 },
 	{ "136", UDEV_136 },
 	{ "175", UDEV_175 },
-	{ "201", UDEV_201 },
 	{ NULL, 0 }
 };
 
@@ -423,15 +426,7 @@ udev_parse_params (const func_params_t *params, void **data)
 		"ENV{ID_USB_INTERFACES}==\"*:08*:*\", GOTO=\"libgphoto2_usb_end\"\n"
 		/* shortcut the most common camera driver, ptp class, so we avoid parsing 1000
 		 * more rules . It will be completed in udev_begin_func() */
-		"ENV{ID_USB_INTERFACES}==\"*:060101:*\", ENV{ID_GPHOTO2}=\"1\", ENV{GPHOTO2_DRIVER}=\"PTP\", ",
-
-		/* UDEV_201 ... regular stuff is done via hwdb, only scsi generic here. */
-		"ACTION!=\"add\", GOTO=\"libgphoto2_rules_end\"\n"
-		"SUBSYSTEM!=\"usb\", GOTO=\"libgphoto2_usb_end\"\n"
-		"ENV{ID_USB_INTERFACES}==\"\", IMPORT{builtin}=\"usb_id\"\n"
-		/* shortcut the most common camera driver, ptp class, so we avoid parsing 1000
-		 * more rules . It will be completed in udev_begin_func() */
-		"ENV{ID_USB_INTERFACES}==\"*:060101:*\", ENV{ID_GPHOTO2}=\"1\", ENV{GPHOTO2_DRIVER}=\"PTP\", ",
+		"ENV{ID_USB_INTERFACES}==\"*:060101:*\", ENV{ID_GPHOTO2}=\"1\", ENV{GPHOTO2_DRIVER}=\"PTP\", "
 	};
 	static const char * const usbcam_strings[] = {
 		/* UDEV_PRE_0_98 */
@@ -441,9 +436,7 @@ udev_parse_params (const func_params_t *params, void **data)
 		/* UDEV_136 */
 		"ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{ID_GPHOTO2}=\"1\", ENV{GPHOTO2_DRIVER}=\"proprietary\"",
 		/* UDEV_175 */
-		"ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{ID_GPHOTO2}=\"1\", ENV{GPHOTO2_DRIVER}=\"proprietary\"",
-		/* UDEV_201 */
-		""
+		"ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{ID_GPHOTO2}=\"1\", ENV{GPHOTO2_DRIVER}=\"proprietary\""
 	};
 	static const char * const usbdisk_strings[] = {
 		/* UDEV_PRE_0_98 */
@@ -453,8 +446,6 @@ udev_parse_params (const func_params_t *params, void **data)
 		/* UDEV_136 */
 		"KERNEL==\"%s\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{ID_GPHOTO2}=\"1\", ENV{GPHOTO2_DRIVER}=\"proprietary\"",
 		/* UDEV_175 */
-		"KERNEL==\"%s\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{ID_GPHOTO2}=\"1\", ENV{GPHOTO2_DRIVER}=\"proprietary\"",
-		/* UDEV_201 */
 		"KERNEL==\"%s\", ATTRS{idVendor}==\"%04x\", ATTRS{idProduct}==\"%04x\", ENV{ID_GPHOTO2}=\"1\", ENV{GPHOTO2_DRIVER}=\"proprietary\""
 	};
 	udev_persistent_data_t *pdata;
@@ -504,8 +495,6 @@ udev_parse_params (const func_params_t *params, void **data)
 					|| pdata->owner != NULL)) {
 		FATAL("The <script> parameter conflicts with the <mode,group,owner> parameters.");
 	}
-	if (pdata->version >= UDEV_201)
-		fprintf(stderr,"NOTE: You need to generate a hwdb too, this file just contains the scsi generic device entries.\n");
 
 	pdata->begin_string = begin_strings[pdata->version];
 	pdata->usbcam_string = usbcam_strings[pdata->version];
@@ -535,7 +524,7 @@ udev_begin_func (const func_params_t *params, void **data)
 		printf ("# this file is autogenerated, local changes will be LOST on upgrades\n");
 		printf ("%s", pdata->begin_string);
 
-		if (pdata->version == UDEV_136 || pdata->version == UDEV_175 || pdata->version == UDEV_201) {
+		if (pdata->version == UDEV_136 || pdata->version == UDEV_175) {
 			if (pdata->mode != NULL || pdata->owner != NULL || pdata->group != NULL) {
 				if (pdata->mode != NULL) {
 					printf("MODE=\"%s\", ", pdata->mode);
@@ -585,6 +574,7 @@ udev_camera_func (const func_params_t *params,
 {
 	int flags = 0;
 	int class = 0, subclass = 0, proto = 0;
+	int usb_vendor = 0, usb_product = 0;
 	int has_valid_rule = 0;
 	udev_persistent_data_t *pdata = (udev_persistent_data_t *) data;
 	ASSERT(pdata != NULL);
@@ -592,14 +582,14 @@ udev_camera_func (const func_params_t *params,
 	if (!(a->port & GP_PORT_USB))
 		return 0;
 
-	if (pdata->version == UDEV_201) return 0;
-
 	if (a->usb_vendor) { /* usb product id may be zero! */
 		class = 0;
 		subclass = 0;
 		proto = 0;
 		flags = (GP_USB_HOTPLUG_MATCH_VENDOR_ID 
 			 | GP_USB_HOTPLUG_MATCH_PRODUCT_ID);
+		usb_vendor = a->usb_vendor;
+		usb_product = a->usb_product;
 	} else {
 		if (a->usb_class) {
 			class = a->usb_class;
@@ -614,6 +604,8 @@ udev_camera_func (const func_params_t *params,
 				flags |= GP_USB_HOTPLUG_MATCH_INT_PROTOCOL;
 			else
 				proto = 0;
+			usb_vendor = 0;
+			usb_product = 0;
 		}
 	}
 
@@ -739,91 +731,6 @@ udev_camera_func2 (const func_params_t *params,
 
 
 static int
-hwdb_begin_func (const func_params_t *params, void **data)
-{
-	fprintf(stderr,"NOTE: You should generate a udev rules file with udev-version 201\n");
-	fprintf(stderr,"or later to support cameras that use SCSI tunneling support, like\n");
-	fprintf(stderr,"various picture frames, Olympus remote control support.\n");
-	printf ("# hardware database file for libgphoto2 devices\n");
-	return 0;
-}
-
-
-static int
-hwdb_camera_func (const func_params_t *params, 
-		  const int i,
-		  const int total,
-		  const CameraAbilities *a,
-		  void *data)
-{
-	int flags = 0;
-	int class = 0, subclass = 0, proto = 0;
-	int usb_vendor = 0, usb_product = 0;
-	int has_valid_rule = 0;
-
-	if (!(a->port & GP_PORT_USB))
-		return 0;
-
-	if (a->usb_vendor) { /* usb product id may be zero! */
-		flags = (GP_USB_HOTPLUG_MATCH_VENDOR_ID 
-			 | GP_USB_HOTPLUG_MATCH_PRODUCT_ID);
-		usb_vendor = a->usb_vendor;
-		usb_product = a->usb_product;
-	} else {
-		if (a->usb_class) {
-			class = a->usb_class;
-			subclass = a->usb_subclass;
-			proto = a->usb_protocol;
-			flags = GP_USB_HOTPLUG_MATCH_INT_CLASS;
-			if (subclass != -1)
-				flags |= GP_USB_HOTPLUG_MATCH_INT_SUBCLASS;
-			else
-				subclass = 0;
-			if (proto != -1)
-				flags |= GP_USB_HOTPLUG_MATCH_INT_PROTOCOL;
-			else
-				proto = 0;
-		}
-	}
-
-	printf ("\n# %s\n", a->model);
-
-	if (flags & GP_USB_HOTPLUG_MATCH_INT_CLASS) {
-		if ((flags & (GP_USB_HOTPLUG_MATCH_INT_CLASS|GP_USB_HOTPLUG_MATCH_INT_SUBCLASS|GP_USB_HOTPLUG_MATCH_INT_PROTOCOL)) == (GP_USB_HOTPLUG_MATCH_INT_CLASS|GP_USB_HOTPLUG_MATCH_INT_SUBCLASS|GP_USB_HOTPLUG_MATCH_INT_PROTOCOL)) {
-			/* device class matcher ... */
-			/*printf("usb:v*p*d*dc%02ddsc%02dp%02d*\"\n GPHOTO2_DRIVER=PTP\n", class, subclass, proto);*/
-			/* but we need an interface class matcher, ptp is a interface */
-			printf("usb:v*ic%02disc%02dip%02d*\n GPHOTO2_DRIVER=PTP\n", class, subclass, proto);
-			has_valid_rule = 1;
-		} else {
-			if (class == 666) {
-				printf("# not working yet\n");
-			} else {
-				fprintf(stderr, "unhandled interface match flags %x\n", flags);
-			}
-		}
-	} else {
-		if (flags & GP_USB_HOTPLUG_MATCH_VENDOR_ID) {
-			if (strstr(a->library, "ptp"))
-				printf ("usb:v%04Xp%04X*\n GPHOTO2_DRIVER=PTP\n", usb_vendor, usb_product);
-			else
-				printf ("usb:v%04Xp%04X*\n GPHOTO2_DRIVER=proprietary\n", usb_vendor, usb_product);
-			has_valid_rule = 1;
-		} else {
-			fprintf (stderr, "Error: Trying to output device %d/%d with incorrect match flags.\n",
-				usb_vendor, usb_product
-			);
-		}
-	}
-	if (has_valid_rule != 0) {
-		printf(" ID_GPHOTO2=1\n");
-		if (a->device_type & GP_DEVICE_AUDIO_PLAYER)
-			printf(" ID_MEDIA_PLAYER=1\n");
-	}
-	return 0;
-}
-
-static int
 empty_begin_func (const func_params_t *params, void **data)
 {
 	return 0;
@@ -883,14 +790,22 @@ ddb_delayed_head(const func_params_t *params,
 	printf("device \"%s\" {\n", a->model);
 
 	printf("    device_type");
-	printf(" %s;\n", gpi_enum_to_string(a->device_type,
-					    gpi_gphoto_device_type_map);
+	first = 1;
+	gpi_enum_to_string(a->device_type, 
+			   gpi_gphoto_device_type_map,
+			   ddb_list_out_func,
+			   (void *) &first);
+	printf(";\n");
 
 	printf("    driver \"%s\";\n", camlib_basename);
 
 	printf("    driver_status");
-	printf(" %s;\n", gpi_enum_to_string(a->status,
-					    gpi_camera_driver_status_map);
+	first = 1;
+	gpi_enum_to_string(a->status, 
+			   gpi_camera_driver_status_map,
+			   ddb_list_out_func,
+			   (void *) &first);
+	printf(";\n");
 
 	printf("    operations");
 	first = 1;
@@ -1228,198 +1143,6 @@ fdi_device_end_func (const func_params_t *params, void *data)
 	return 0;
 }
 
-/* HTML output */
-struct html_comment {
-	char *name;
-	char *comment;
-};
-struct html_data {
-	int nrofcomments;
-	struct html_comment *comments;
-};
-
-static int
-html_begin_func (const func_params_t *params, void **data) {
-	FILE *f;
-	char buf[512];
-	struct html_data *hd;
-
-	printf("<!-- This part was generated by %s - - html -->\n",
-	       "libgphoto2 " ARGV0);
-	print_version_comment(stdout, "    | ", "\n", "<!--+\n", "    +-->\n");
-	printf("Number of supported cameras and media players: %d\n",params->number_of_cameras);
-	printf("<table border=1>\n");
-	printf("<tr>\n");
-	printf("   <th>Camera Model</th>\n");
-	printf("   <th>Additional Abilities</th>\n");
-	printf("   <th>Comments</th>\n");
-	printf("</tr>\n");
-
-	*data = hd = malloc(sizeof(*hd));
-	hd->nrofcomments = 0;
-	hd->comments = NULL;
-
-	f = fopen("comments.txt","r");
-	if (!f)
-		return 0;
-	while (fgets(buf,sizeof(buf),f)) {
-		char *s = strchr(buf,';');
-		if (!s)
-			continue;
-		*s = '\0';
-		if (hd->nrofcomments) {
-			hd->comments = realloc(hd->comments, (hd->nrofcomments+1)*sizeof(hd->comments[0]));
-		} else {
-			hd->comments = malloc(sizeof(hd->comments[0]));
-		}
-		hd->comments[hd->nrofcomments].name = strdup(buf);
-		hd->comments[hd->nrofcomments].comment = strdup(s+1);
-		hd->nrofcomments++;
-	}
-	fclose (f);
-	return 0;
-}
-
-static char*
-escape_html(const char *str) {
-	const char *s;
-	char *newstr, *ns;
-	int inc = 0;
-
-	s = str;
-	do {
-		s = strchr(s,'&');
-		if (s) {
-			inc+=strlen("&amp;");
-			s++;
-		}
-	} while (s);
-	/* FIXME: if we ever get a camera with <> or so, add escape code here */
-	newstr = malloc(strlen(str)+1+inc);
-	s = str; ns = newstr;
-	do {
-		char *x;
-		x = strchr(s,'&');
-		if (x) {
-			memcpy (ns, s, x-s);
-			ns += x-s;
-			memcpy (ns, "&amp;", strlen("&amp;"));
-			ns += strlen("&amp;");
-			s = x+1;
-		} else {
-			strcpy (ns, s);
-			break;
-		}
-	} while (1);
-	return newstr;
-}
-
-static int
-html_camera_func (
-	const func_params_t *params, 
-	const int i,
-	const int total,
-	const CameraAbilities *a,
-	void *data
-) {
-	char *m;
-	int j;
-	CameraOperation		op = a->operations;
-	struct html_data	*hd = data;
-
-	if (a->device_type != GP_DEVICE_STILL_CAMERA)
-		return 0;
-
-	printf ("<tr>\n");
-	m = escape_html (a->model);
-	printf (" <td>%s</td>", m); free (m);
-	printf (" <td>");
-	if (!op) printf ("&nbsp;");
-	if (op & GP_OPERATION_CAPTURE_IMAGE) {
-		printf ("Image Capture");
-		op &= ~GP_OPERATION_CAPTURE_IMAGE;
-		if (op) printf (", ");
-	}
-	if (op & GP_OPERATION_TRIGGER_CAPTURE) {
-		printf ("Trigger Capture");
-		op &= ~GP_OPERATION_TRIGGER_CAPTURE;
-		if (op) printf (", ");
-	}
-	if (op & GP_OPERATION_CAPTURE_PREVIEW) {
-		printf ("Liveview");
-		op &= ~GP_OPERATION_CAPTURE_PREVIEW;
-		if (op) printf (", ");
-	}
-	if (op & GP_OPERATION_CONFIG) {
-		printf ("Configuration");
-		op &= ~GP_OPERATION_CONFIG;
-		if (op) printf (", ");
-	}
-	if (op) {
-		printf ("Other Ops %x", op);
-	}
-	printf(" </td>");
-	printf(" <td>");
-	switch (a->status) {
-	case GP_DRIVER_STATUS_PRODUCTION: break;
-	case GP_DRIVER_STATUS_TESTING: printf("Testing (Beta)"); break;
-	case GP_DRIVER_STATUS_EXPERIMENTAL: printf("Experimental"); break;
-	case GP_DRIVER_STATUS_DEPRECATED: printf("Deprecated"); break;
-	}
-	/* read comments */
-	for (j=0;j<hd->nrofcomments;j++) {
-		if (!strcmp(a->model,hd->comments[j].name)) {
-			printf("%s",hd->comments[j].comment);
-			break;
-		}
-	}
-	if (j == hd->nrofcomments) printf(" &nbsp;");
-	printf(" </td>");
-	printf("</tr>\n");
-	return 0;
-}
-
-static int html_middle_func (
-	const func_params_t *params,
-	void **data
-) {
-	printf("</table><p>\n");
-	printf("Media Players that are supported by both libmtp and libgphoto2:<p/>\n");
-	printf("<table border=1>\n");
-	printf("<tr>\n");
-	printf("   <th>Media Player Model</th>\n");
-	printf("</tr>\n");
-	return 0;
-}
-
-static int
-html_camera2_func (
-	const func_params_t *params, 
-	const int i,
-	const int total,
-	const CameraAbilities *a,
-	void *data
-) {
-	char *m;
-
-	if (a->device_type != GP_DEVICE_AUDIO_PLAYER)
-		return 0;
-
-	m = escape_html (a->model);
-	printf ("<tr>\n");
-	printf (" <td>%s</td>", m); free (m);
-	printf("</tr>\n");
-	return 0;
-}
-
-
-static int html_end_func (
-	const func_params_t *params,
-	void *data
-) {
-	printf("</table>\n");
-	return 0;
-}
 
 /* time zero for debug log time stamps */
 struct timeval glob_tv_zero = { 0, 0 };
@@ -1570,34 +1293,13 @@ static const output_format_t formats[] = {
 	 "        If you give a script parameter, the mode, owner, group parameters will be ignored.\n"
 	 "        For mode \"136\" put it into /lib/udev/rules.d/40-libgphoto2.rules;\n"
 	 "        you can still use mode/owner/group, but the preferred mode of operation\n"
-	 "        is to use udev-extras for dynamic access permissions.\n"
-	"	  Available versions of the rule generator: 0.98, 136, 175, 201.\n",
+	 "        is to use udev-extras for dynamic access permissions.\n",
 	 "[script <PATH_TO_SCRIPT>|version <version>|mode <mode>|owner <owner>|group <group>]*",
 	 udev_begin_func, 
 	 udev_camera_func,
 	 udev_middle_func,
 	 udev_camera_func2,
 	 udev_end_func
-	},
-	{"hwdb",
-	 "hardware database file",
-	 "Put it into /usr/lib/udev/hwdb.d/20-gphoto.conf.\n",
-	 NULL,
-	 hwdb_begin_func,
-	 hwdb_camera_func,
-	 NULL,
-	 NULL,
-	 empty_end_func
-	},
-	{"html",
-	 "HTML table file for gphoto.org website",
-	 "Paste it into /proj/libgphoto2/support.php",
-	 NULL,
-	 html_begin_func,
-	 html_camera_func,
-	 html_middle_func,
-	 html_camera2_func,
-	 html_end_func
 	},
 	{"idlist",
 	 "list of IDs and names",
@@ -1621,7 +1323,8 @@ static const output_format_t formats[] = {
 	 ddb_end_func
 	},
 #endif
-	{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}
+	{NULL, NULL, NULL, NULL, 
+	 NULL, NULL, NULL}
 };
 
 
