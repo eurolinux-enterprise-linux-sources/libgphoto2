@@ -2,7 +2,7 @@
 
 Name:           libgphoto2
 Version:        2.5.2
-Release:        3%{?dist}
+Release:        5%{?dist}
 Summary:        Library for accessing digital cameras
 Group:          Development/Libraries
 # GPLV2+ for the main lib (due to exif.c) and most plugins, some plugins GPLv2
@@ -13,7 +13,7 @@ Patch1:         gphoto2-pkgcfg.patch
 Patch2:         gphoto2-storage.patch
 Patch3:         gphoto2-ixany.patch
 Patch4:         gphoto2-device-return.patch
-BuildRequires:  libusb1-devel, libusb-devel >= 0.1.5
+BuildRequires:  libusbx-devel
 BuildRequires:  lockdev-devel
 BuildRequires:  libexif-devel
 BuildRequires:  libjpeg-devel
@@ -35,7 +35,7 @@ however, such as gtkam for example.
 Summary:        Headers and links to compile against the libgphoto2 library
 Group:          Development/Libraries
 Requires:       %{name}%{?_isa} = %{version}-%{release}
-Requires:       libusb-devel >= 0.1.5, libexif-devel
+Requires:       libexif-devel
 Obsoletes:      gphoto2-devel < 2.4.0-11
 Provides:       gphoto2-devel = %{version}-%{release}
 
@@ -140,6 +140,14 @@ cat libgphoto2*.lang >> %{name}.lang
 %{_mandir}/man3/*
 
 %changelog
+* Wed Jun 21 2017 Debarshi Ray <rishi@fedoraproject.org> - 2.5.2-4
+- BuildRequire libusbx-devel, not libusbx
+Resolves: #1365875
+
+* Tue Jun 20 2017 Debarshi Ray <rishi@fedoraproject.org> - 2.5.2-4
+- Use only libusbx and drop libusb
+Resolves: #1365875
+
 * Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 2.5.2-3
 - Mass rebuild 2014-01-24
 
